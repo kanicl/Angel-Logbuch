@@ -14,7 +14,7 @@
     --line:#B9B09B; --line-soft:#D9D2C2;
     --text:#14201C; --text-dim:#4E5C55;
     --brass:#8A5A0E; --brass-bright:#6E4708; --brass-tint:#FFF6E4;
-    --sage:#1E5C3E; --rust:#A32D10;
+    --sage:#1E5C3E; --rust:#A32D10; --water:#2A5F8F;
     --font-body:'Inter',system-ui,-apple-system,sans-serif;
     --font-mono:'JetBrains Mono',ui-monospace,'Courier New',monospace;
   }
@@ -26,7 +26,7 @@
   h1{ font-weight:800; font-size:27px; margin:0 0 3px; letter-spacing:-0.02em; }
   .sub{ font-size:13px; color:var(--text-dim); margin:0; }
   .tabs{ display:flex; gap:3px; margin:14px 20px 0; background:var(--surface-2); padding:4px; border-radius:8px; border:1px solid var(--line); }
-  .tab{ flex:1; text-align:center; padding:10px 3px; font-family:var(--font-mono); font-size:11.5px;
+  .tab{ flex:1; text-align:center; padding:10px 2px; font-family:var(--font-mono); font-size:11px;
     text-transform:uppercase; color:var(--text-dim); border-radius:5px; cursor:pointer; user-select:none; font-weight:700; }
   .tab.active{ background:var(--text); color:#fff; }
   main{ padding:16px 20px 0; }
@@ -46,15 +46,17 @@
   .chip{ padding:11px 16px; background:#fff; border:2px solid var(--line); border-radius:22px;
     font-size:14px; cursor:pointer; user-select:none; color:var(--text-dim); font-weight:600; }
   .chip.sel{ background:var(--brass); border-color:var(--brass); color:#fff; }
-  .chips.big .chip{ flex:1; text-align:center; padding:14px 8px; font-size:15px; }
+  .chips.big .chip{ flex:1; text-align:center; padding:14px 6px; font-size:15px; }
   .btn{ width:100%; padding:14px; border-radius:8px; border:2px solid var(--line); background:#fff; color:var(--text);
     font-family:var(--font-mono); font-size:13px; cursor:pointer; font-weight:700; }
   .btn-brass{ background:var(--brass); border-color:var(--brass); color:#fff; }
   .btn-row{ display:flex; gap:8px; align-items:center; }
-  .btn-row input{ flex:1; } .btn-row .btn{ width:auto; padding:11px 14px; white-space:nowrap; }
+  .btn-row input{ flex:1; } .btn-row .btn{ width:auto; flex:1; padding:11px 10px; white-space:nowrap; }
   .btn[disabled]{ opacity:0.45; }
   .diag{ font-family:var(--font-mono); font-size:11.5px; line-height:1.75; color:var(--text-dim); font-weight:600; }
   .diag .ok{ color:var(--sage); } .diag .err{ color:var(--rust); } .diag .warn{ color:var(--brass); }
+  .warnbox{ background:#FFF3E0; border:2px solid var(--brass); border-radius:8px; padding:11px 13px;
+    font-size:12.5px; font-weight:600; color:var(--brass-bright); line-height:1.5; }
   #timerBar{ background:var(--surface); border:2px solid var(--line); border-left:6px solid var(--sage); border-radius:8px;
     padding:13px 15px; display:flex; align-items:center; justify-content:space-between; gap:10px;
     font-family:var(--font-mono); font-size:13px; margin-bottom:14px; font-weight:700; }
@@ -62,6 +64,23 @@
   #timerBar .label{ color:var(--text-dim); } #timerBar .clock{ font-size:19px; color:var(--brass-bright); }
   .status-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; font-size:13.5px; gap:10px; }
   .status-row .k{ color:var(--text-dim); font-weight:600; } .status-row .v{ font-family:var(--font-mono); font-weight:700; text-align:right; }
+
+  /* Tiefen-Panel */
+  .depth-card{ border-color:var(--water); border-width:3px; }
+  .depth-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .depth-val{ font-family:var(--font-mono); font-size:40px; font-weight:800; color:var(--water); line-height:1; }
+  .depth-val span{ font-size:17px; color:var(--text-dim); margin-left:3px; }
+  .depth-src{ font-family:var(--font-mono); font-size:10.5px; font-weight:800; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--text-dim); border:2px solid var(--line-soft); border-radius:10px; padding:2px 8px; }
+  .depth-ctrl{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .depth-ctrl button{ padding:14px 2px; border-radius:8px; border:2px solid var(--line); background:#fff;
+    font-family:var(--font-mono); font-size:15px; font-weight:800; color:var(--text); cursor:pointer; }
+  .depth-ctrl button.wide{ border-color:var(--water); color:var(--water); font-size:13px; }
+  .depth-sugg{ margin-top:10px; background:#EAF1F6; border:2px solid var(--water); border-radius:8px;
+    padding:10px 12px; font-size:12.5px; font-weight:700; color:var(--water); cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .depth-sugg b{ font-family:var(--font-mono); }
+
   .action-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
   .action-btn{ padding:22px 8px; border-radius:10px; border:2px solid var(--line); background:#fff;
     color:var(--text); font-family:var(--font-mono); font-size:15px; text-align:center; cursor:pointer; font-weight:700; }
@@ -72,13 +91,17 @@
   .action-btn.end{ grid-column:1/-1; background:transparent; color:var(--text-dim); border-style:dashed; padding:14px; font-size:12px; }
   .confirm-row{ display:flex; gap:8px; } .confirm-row .btn{ flex:1; }
   .confirm-row .yes{ background:var(--rust); border-color:var(--rust); color:#fff; }
+  .fixbadge{ font-family:var(--font-mono); font-size:12px; font-weight:800; padding:9px 12px; border-radius:8px;
+    border:2px solid var(--line); background:#fff; color:var(--text-dim); margin-bottom:12px; }
+  .fixbadge.ok{ border-color:var(--sage); color:var(--sage); background:#EDF6F1; }
+  .fixbadge.err{ border-color:var(--rust); color:var(--rust); background:#FBEEEA; }
   .angler-mini{ background:var(--surface-2); border:2px solid var(--line-soft); border-radius:8px; padding:10px 12px;
-    margin-bottom:8px; font-size:13px; display:flex; gap:10px; align-items:center; }
+    margin-bottom:8px; font-size:13px; display:flex; gap:10px; align-items:center; cursor:pointer; }
   .angler-mini img,.angler-mini .swatch{ width:44px; height:44px; border-radius:6px; object-fit:cover; border:2px solid var(--line); flex-shrink:0; }
   .angler-mini .swatch{ background:#fff; display:flex; align-items:center; justify-content:center; font-size:19px; }
   .angler-mini .name{ color:var(--brass-bright); font-family:var(--font-mono); font-weight:800; margin-bottom:2px; }
   .angler-mini .meta{ color:var(--text-dim); font-weight:600; }
-
+  .angler-mini .edit{ margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--water); font-weight:800; }
   .bait-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
   .bait-tile{ border:2px solid var(--line); border-radius:9px; padding:7px; background:#fff; cursor:pointer; text-align:center; }
   .bait-tile img,.bait-tile .ph{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; display:block; margin-bottom:5px; border:1px solid var(--line-soft); }
@@ -87,7 +110,6 @@
   .bait-tile .sm{ font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); font-weight:700; margin-top:2px; }
   .bait-tile.add{ display:flex; flex-direction:column; align-items:center; justify-content:center;
     border-style:dashed; color:var(--text-dim); min-height:104px; font-size:12px; font-weight:700; }
-
   .wheel-wrap{ position:relative; height:150px; border:2px solid var(--line); border-radius:9px; overflow:hidden; background:#fff; }
   .wheel{ height:100%; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .wheel::-webkit-scrollbar{ display:none; }
@@ -96,17 +118,15 @@
   .wheel-band{ position:absolute; left:0; right:0; top:50px; height:50px; border-top:2px solid var(--brass);
     border-bottom:2px solid var(--brass); pointer-events:none; background:rgba(138,90,14,0.07); }
   .wheel-unit{ position:absolute; right:16px; top:64px; font-family:var(--font-mono); font-weight:800; color:var(--brass); pointer-events:none; }
-
   .voice-btn{ width:100%; padding:16px; border-radius:9px; border:2px solid var(--sage); background:#fff; color:var(--sage);
     font-family:var(--font-mono); font-size:14px; font-weight:800; cursor:pointer; }
   .voice-btn.listening{ background:var(--sage); color:#fff; }
   .voice-out{ font-family:var(--font-mono); font-size:12px; color:var(--text-dim); margin-top:8px; font-weight:600; min-height:16px; }
-
   .entry{ position:relative; background:var(--surface); border:2px solid var(--line-soft); border-radius:9px;
-    padding:13px 15px 13px 18px; margin-bottom:10px; }
+    padding:13px 15px 13px 18px; margin-bottom:10px; cursor:pointer; }
   .entry::before{ content:""; position:absolute; left:-2px; top:-2px; bottom:-2px; width:6px; background:var(--line); border-radius:8px 0 0 8px; }
   .entry.t-biss::before{ background:var(--sage); }
-  .entry.t-koederwechsel::before{ background:#2A5F8F; }
+  .entry.t-koederwechsel::before{ background:var(--water); }
   .entry.t-technikwechsel::before{ background:#6B3F96; }
   .entry.t-fisch{ border:3px solid var(--brass); background:var(--brass-tint); padding:16px 16px 16px 22px;
     box-shadow:0 3px 0 rgba(138,90,14,0.22); margin-bottom:14px; }
@@ -114,6 +134,7 @@
   .fish-head{ display:flex; align-items:center; gap:12px; margin-bottom:9px; }
   .fish-head .icon{ color:var(--brass); flex-shrink:0; }
   .fish-head .sp{ font-size:22px; font-weight:800; letter-spacing:-0.02em; }
+  .fish-head .sp.missing{ color:var(--rust); font-size:17px; }
   .fish-head .sz{ font-family:var(--font-mono); font-size:13px; color:var(--brass-bright); font-weight:800; margin-top:2px; }
   .entry-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; gap:7px; flex-wrap:wrap; }
   .entry-time{ font-family:var(--font-mono); font-size:13px; color:var(--brass-bright); font-weight:800; }
@@ -121,27 +142,44 @@
     color:var(--text-dim); border:2px solid var(--line-soft); border-radius:10px; padding:1px 7px; font-weight:700; }
   .entry.t-fisch .entry-type{ background:var(--brass); color:#fff; border-color:var(--brass); }
   .entry-angler{ font-family:var(--font-mono); font-size:10px; color:#fff; background:var(--sage); border-radius:10px; padding:2px 8px; font-weight:700; }
-  .entry-del{ font-size:11px; color:var(--text-dim); cursor:pointer; font-family:var(--font-mono); margin-left:auto; font-weight:700; }
+  .entry-edit{ font-size:11px; color:var(--water); font-family:var(--font-mono); margin-left:auto; font-weight:800; }
   .entry-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:3px 14px; font-size:12.5px; color:var(--text-dim); font-weight:600; }
   .entry-grid b{ color:var(--text); font-weight:800; }
   .entry-note{ margin-top:7px; padding-top:7px; border-top:2px dashed var(--line-soft);
     font-family:var(--font-mono); font-size:12.5px; color:var(--text-dim); font-weight:700; }
   .empty{ text-align:center; color:var(--text-dim); font-size:13px; padding:36px 10px; font-weight:600; }
+  .trip-card{ background:var(--surface); border:2px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:10px; cursor:pointer; }
+  .trip-card.live{ border-color:var(--sage); border-width:3px; }
+  .trip-date{ font-family:var(--font-mono); font-size:15px; font-weight:800; }
+  .trip-time{ font-family:var(--font-mono); font-size:13px; color:var(--text-dim); font-weight:700; margin-top:1px; }
+  .trip-badges{ display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; align-items:center; }
+  .badge{ display:flex; align-items:center; gap:5px; background:var(--brass-tint); border:2px solid var(--brass);
+    border-radius:14px; padding:3px 9px; font-family:var(--font-mono); font-size:12px; font-weight:800; color:var(--brass-bright); }
+  .badge .icon{ color:var(--brass); display:flex; }
+  .badge.plain{ background:var(--surface-2); border-color:var(--line-soft); color:var(--text-dim); }
+  .badge.live{ background:var(--sage); border-color:var(--sage); color:#fff; }
   .stats-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
   .stat{ background:var(--surface); border:2px solid var(--line); border-radius:9px; padding:14px; text-align:center; }
-  .stat .n{ font-family:var(--font-mono); font-size:27px; color:var(--brass-bright); font-weight:800; }
+  .stat .n{ font-family:var(--font-mono); font-size:25px; color:var(--brass-bright); font-weight:800; }
   .stat .l{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; font-weight:700; }
   .sp-row{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:13.5px; font-weight:700; }
   .sp-row .icon{ color:var(--brass); flex-shrink:0; }
   .sp-row b{ margin-left:auto; font-family:var(--font-mono); }
+  .kv{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; font-weight:600; color:var(--text-dim); gap:12px; }
+  .kv b{ color:var(--text); font-family:var(--font-mono); font-weight:800; text-align:right; }
+  .map-box{ background:#EAF1F6; border:2px solid var(--line); border-radius:9px; overflow:hidden; min-height:120px; }
+  #leafMap{ height:300px; width:100%; }
+  .leaflet-container{ font-family:var(--font-mono); font-size:11px; }
+  .legend{ display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; font-family:var(--font-mono); font-size:10.5px; font-weight:800; }
+  .legend span{ padding:3px 7px; border-radius:9px; color:#fff; }
   .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); background:var(--text);
     border:2px solid var(--text); color:#fff; padding:11px 16px; border-radius:22px; font-size:13px;
-    font-family:var(--font-mono); opacity:0; transition:all 0.22s ease; z-index:120; text-align:center;
+    font-family:var(--font-mono); opacity:0; transition:all 0.22s ease; z-index:1400; text-align:center;
     max-width:88%; font-weight:700; pointer-events:none; display:flex; align-items:center; gap:12px; }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
   .toast button{ background:#fff; color:var(--text); border:none; border-radius:14px; padding:5px 11px;
     font-family:var(--font-mono); font-weight:800; font-size:12px; cursor:pointer; }
-  .modal{ position:fixed; inset:0; background:rgba(20,32,28,0.45); z-index:100; display:flex; align-items:flex-end; }
+  .modal{ position:fixed; inset:0; background:rgba(20,32,28,0.5); z-index:1200; display:flex; align-items:flex-end; }
   .modal-inner{ background:var(--bg); width:100%; max-height:92vh; overflow-y:auto; border-radius:16px 16px 0 0;
     padding:18px 20px calc(24px + env(safe-area-inset-bottom)); border-top:3px solid var(--brass); }
   .modal-inner h3{ margin:0 0 14px; font-size:18px; font-weight:800; }
@@ -158,7 +196,7 @@
 <div class="tabs">
   <div class="tab active" data-tab="trip">Trip</div>
   <div class="tab" data-tab="baits">Köder</div>
-  <div class="tab" data-tab="log">Logbuch</div>
+  <div class="tab" data-tab="trips">Trips</div>
   <div class="tab" data-tab="stats">Statistik</div>
 </div>
 
@@ -174,7 +212,6 @@
             <div class="chip" data-val="Werfen">Werfen</div>
           </div></div>
       </div>
-
       <div class="card">
         <h2>Wer ist an Bord?</h2>
         <div class="chips" id="s-anglerChips"></div>
@@ -183,13 +220,11 @@
           <button class="btn" id="s-addOther">+ Angler</button></div></div>
         <div id="s-anglerBaits" style="margin-top:14px;"></div>
       </div>
-
       <div class="card">
         <h2>Standort &amp; Wetter</h2>
         <div class="diag" id="diagBox">Prüfe…</div>
         <button class="btn" id="retryFixBtn" style="margin-top:12px;">📍 Standort &amp; Wetter jetzt abrufen</button>
       </div>
-
       <button class="btn btn-brass" id="startTripBtn">▶ Trip starten</button>
     </div>
 
@@ -198,9 +233,32 @@
         <span class="label" id="timerLabel">Nächster Auto-Log in</span>
         <span class="clock" id="clockText">05:00</span>
       </div>
+
+      <div class="card depth-card">
+        <h2>Wassertiefe (läuft mit)</h2>
+        <div class="depth-head">
+          <div class="depth-val" id="depthVal">–<span>m</span></div>
+          <div class="depth-src" id="depthSrc">nicht gesetzt</div>
+        </div>
+        <div class="depth-ctrl">
+          <button data-d="-1">−1</button>
+          <button data-d="-0.5">−½</button>
+          <button class="wide" id="depthSet">setzen</button>
+          <button data-d="0.5">+½</button>
+          <button data-d="1">+1</button>
+        </div>
+        <div id="depthSuggest"></div>
+      </div>
+
+      <div class="warnbox" style="margin-bottom:14px;">
+        ⚠ Bildschirm bitte anlassen. iOS friert die App im Standby ein – dann pausiert der Auto-Log.
+        Beim Zurückkommen wird die Lücke erkannt und ein Punkt nachgeholt.
+      </div>
+
       <div class="card">
         <div class="status-row"><span class="k">Trip gestartet</span><span class="v" id="tripStartedAt">–</span></div>
         <div class="status-row"><span class="k">Letzte Position</span><span class="v" id="lastFixLabel">–</span></div>
+        <div class="status-row"><span class="k">Luftdruck (Meereshöhe)</span><span class="v" id="pressLabel">–</span></div>
         <div class="field" style="margin-top:8px;"><label>Technik (tippen zum Wechseln)</label>
           <div class="chips big" id="techChipsActive">
             <div class="chip" data-val="Schleppen">Schleppen</div>
@@ -209,7 +267,8 @@
         <div class="field" style="margin-top:12px;"><label>Wassertemperatur (°C)</label>
           <input type="number" id="a-watertemp" step="0.1" inputmode="decimal"></div>
       </div>
-      <div class="card"><h2>Angler &amp; aktive Köder</h2><div id="anglerCards"></div></div>
+      <div class="card"><h2>Angler &amp; aktive Köder</h2><div id="anglerCards"></div>
+        <p style="font-size:11.5px;color:var(--text-dim);margin:4px 0 0;font-weight:600;">Antippen, um einen falsch eingetragenen Köder zu korrigieren.</p></div>
       <div class="action-grid" id="actionGrid">
         <div class="action-btn bite" data-action="biss"><span class="ic">〰</span>Biss</div>
         <div class="action-btn fish" data-action="fisch"><span class="ic">🐟</span>Fisch</div>
@@ -217,7 +276,7 @@
         <div class="action-btn" data-action="pause" id="pauseBtn"><span class="ic">⏸</span>Pause</div>
         <div class="action-btn end" data-action="ende">Trip beenden</div>
       </div>
-      <div id="actionPanel"></div>
+      <div class="card" style="margin-top:4px;"><h2>Letzte Einträge</h2><div id="recentList"></div></div>
     </div>
   </section>
 
@@ -230,32 +289,34 @@
     </div>
   </section>
 
-  <section id="tab-log">
-    <div class="btn-row" style="margin-bottom:14px;">
-      <button class="btn" id="exportBtn">⬇ CSV exportieren</button>
-      <button class="btn" id="clearBtn">🗑 Alle löschen</button>
+  <section id="tab-trips">
+    <div id="tripListView">
+      <div class="btn-row" style="margin-bottom:10px;">
+        <button class="btn" id="exportBtn">⬇ CSV export</button>
+        <button class="btn" id="importBtn">⬆ CSV import</button>
+      </div>
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn" id="clearBtn">🗑 Alle Daten löschen</button>
+      </div>
+      <div id="clearConfirm" style="display:none;margin-bottom:14px;" class="confirm-row">
+        <button class="btn yes" id="clearYes">Ja, alles löschen</button>
+        <button class="btn" id="clearNo">Abbrechen</button>
+      </div>
+      <div id="tripList"><div class="empty">Noch keine Trips aufgezeichnet.</div></div>
     </div>
-    <div id="clearConfirm" style="display:none;margin-bottom:14px;" class="confirm-row">
-      <button class="btn yes" id="clearYes">Ja, alles löschen</button>
-      <button class="btn" id="clearNo">Abbrechen</button>
-    </div>
-    <div class="field" style="margin-bottom:14px;">
-      <div class="chips" id="logFilter">
-        <div class="chip sel" data-f="all">Alles</div>
-        <div class="chip" data-f="fisch">Nur Fänge</div>
-        <div class="chip" data-f="events">Fänge &amp; Bisse</div>
-      </div></div>
-    <div id="logList"><div class="empty">Noch keine Einträge.</div></div>
+    <div id="tripDetailView" style="display:none;"></div>
   </section>
 
   <section id="tab-stats">
     <div class="stats-grid">
-      <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Einträge</div></div>
+      <div class="stat"><div class="n" id="statTrips">0</div><div class="l">Trips</div></div>
       <div class="stat"><div class="n" id="statCatches">0</div><div class="l">Fänge</div></div>
       <div class="stat"><div class="n" id="statBites">0</div><div class="l">Bisse</div></div>
       <div class="stat"><div class="n" id="statRate">0%</div><div class="l">Verwertung</div></div>
     </div>
+    <div class="card"><h2>Tiefenkarte</h2><div id="depthStats" class="diag"></div></div>
     <div class="card"><h2>Top Fischarten</h2><div id="topSpecies" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
+    <div class="card"><h2>Fangtiefe (nach Fängen)</h2><div id="topDepths" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
     <div class="card"><h2>Top Köder (nach Fängen)</h2><div id="topBaits" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
     <div class="card"><h2>Köderlänge (nach Fängen)</h2><div id="topLengths" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
     <div class="card"><h2>Fänge pro Angler</h2><div id="topAnglers" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
@@ -265,43 +326,48 @@
 <div class="toast" id="toast"></div>
 <div id="modalRoot"></div>
 <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="csvInput" accept=".csv,text/csv" style="display:none;">
 
 <script>
 const K_ENTRIES='anglog_entries', K_TRIP='anglog_tripState', K_BAITS='anglog_baitBox';
 const BAIT_TYPES=['Gummifisch','Wobbler','Spinner','Andere'];
 const SPECIES=['Hecht','Zander','Barsch','Andere'];
-const ANGLER_PRESETS=['Sabrina','Heiko','Niclas'];
+const ANGLER_PRESETS=['Sabrina','Heiko','Niclas','Laura'];
 const WEIGHTS=[7.5,10,15,20,24,28,30,35,40];
 const LENGTHS=['Klein','Mittel','Groß'];
+const DEPTHS=(()=>{ const a=[]; for(let d=0.5;d<=30.001;d+=0.5) a.push(Math.round(d*10)/10); return a; })();
 const DEFAULT_WEIGHT=20, DEFAULT_LENGTH='Mittel';
+const SUGGEST_RADIUS_M=30;
+const CSV_COLS=['datetime','type','tripId','angler','technique','lat','lon','pressure','pressuresurface','pressuretrend3h',
+  'airtemp','wind','winddir','rain','watertemp','depth','depthsource','baittype','baitcolor','baitlength','baitweight',
+  'baitdurationmin','techdurationmin','bite','catch','species','fishlen','fishweight','notes'];
 
 let entries=[], trip=null, anglers=[], technique=null, baitBox=[];
-let waterTemp=null, paused=false, secondsLeft=300, lastDepth='';
+let waterTemp=null, paused=false, secondsLeft=300;
+let currentDepth=null, depthSource='';
 let lastWeight=DEFAULT_WEIGHT, lastLength=DEFAULT_LENGTH;
 let lastKnownLoc={lat:null,lon:null,acc:null,at:null};
-let lastKnownWx={pressure:null,airtemp:null,wind:null,winddir:null,rain:null};
+let lastKnownWx={pressure:null,pressuresurface:null,pressuretrend3h:null,airtemp:null,wind:null,winddir:null,rain:null};
 let setupSelected=[], setupTechnique=null, setupBaits={};
-let panelAngler=null, panelSpecies=null, logFilter='all';
+let openTripId=null, lastAutoAt=Date.now();
 let timerHandle=null, wakeLock=null, lastAddedId=null;
 let diag={geoLast:'–',wxLast:'–'};
+let pendingEvent=null, currentSuggestion=null, showDepthLayer=false;
 const wheelVals={};
 
 // ================= FISCH-SILHOUETTEN =================
-const FISH_SVG = {
-  // Hecht: sehr langgestreckt, Entenschnabel, Rückenflosse weit hinten
+const FISH_SVG={
   hecht:`<svg viewBox="0 0 132 46" width="62" height="22" fill="currentColor">
     <path d="M2 23 C 16 14 38 10 60 12 C 76 13 90 16 99 19 L 99 27 C 90 30 76 33 60 34 C 38 36 16 32 2 23 Z"/>
     <path d="M70 12 L 90 3 L 93 14 Z"/><path d="M70 34 L 88 43 L 91 32 Z"/>
     <path d="M99 19 L 128 8 L 123 23 L 128 38 L 99 27 Z"/>
     <circle cx="18" cy="20.5" r="2.5" fill="#fff"/></svg>`,
-  // Zander: gestreckt, zwei Rückenflossen, vordere stachelig
   zander:`<svg viewBox="0 0 132 46" width="62" height="22" fill="currentColor">
     <path d="M4 23 C 18 15 40 11 62 13 C 77 14 90 17 98 20 L 98 27 C 90 30 77 32 62 33 C 40 35 18 31 4 23 Z"/>
     <path d="M32 13 L 36 4 L 40 12 L 44 3 L 48 12 L 52 4 L 56 13 Z"/>
     <path d="M62 12 L 80 6 L 84 15 Z"/><path d="M60 33 L 76 41 L 79 31 Z"/>
     <path d="M98 20 L 127 9 L 122 23 L 127 37 L 98 27 Z"/>
     <circle cx="19" cy="20.5" r="2.6" fill="#fff"/></svg>`,
-  // Barsch: hochrückig, buckelig, Stachelflosse, Querstreifen
   barsch:`<svg viewBox="0 0 132 54" width="62" height="25" fill="currentColor">
     <path d="M6 29 C 15 16 36 9 58 12 C 76 15 90 21 98 26 L 98 33 C 90 39 76 44 58 46 C 36 49 15 41 6 29 Z"/>
     <path d="M30 13 L 34 3 L 38 11 L 42 2 L 46 11 L 50 3 L 55 13 Z"/>
@@ -311,20 +377,17 @@ const FISH_SVG = {
       <line x1="28" y1="19" x2="27" y2="39"/><line x1="41" y1="17" x2="40" y2="41"/>
       <line x1="54" y1="17" x2="53" y2="42"/><line x1="67" y1="19" x2="66" y2="41"/></g>
     <circle cx="20" cy="25" r="2.7" fill="#fff"/></svg>`,
-  // generisch
   andere:`<svg viewBox="0 0 132 46" width="62" height="22" fill="currentColor">
     <path d="M6 23 C 18 13 40 8 62 11 C 78 13 90 17 98 21 L 98 27 C 90 31 78 34 62 35 C 40 38 18 33 6 23 Z"/>
     <path d="M56 11 L 74 4 L 78 14 Z"/><path d="M56 35 L 72 42 L 76 32 Z"/>
     <path d="M98 21 L 127 10 L 122 24 L 127 38 L 98 27 Z"/>
-    <circle cx="21" cy="20.5" r="2.6" fill="#fff"/></svg>`
-};
+    <circle cx="21" cy="20.5" r="2.6" fill="#fff"/></svg>`};
 function fishIcon(sp,size){
   const s=(sp||'').toLowerCase();
-  let key = s.includes('hecht')?'hecht' : s.includes('zander')?'zander' : s.includes('barsch')?'barsch' : 'andere';
+  const key=s.includes('hecht')?'hecht':s.includes('zander')?'zander':s.includes('barsch')?'barsch':'andere';
   let svg=FISH_SVG[key];
-  if(size) svg=svg.replace(/width="\d+" height="\d+"/, `width="${size}" height="${Math.round(size*0.36)}"`);
-  return `<span class="icon">${svg}</span>`;
-}
+  if(size) svg=svg.replace(/width="\d+" height="\d+"/,`width="${size}" height="${Math.round(size*0.36)}"`);
+  return `<span class="icon">${svg}</span>`; }
 
 // ---------- storage ----------
 const store={ mode:'none',
@@ -342,11 +405,14 @@ const pad=n=>n.toString().padStart(2,'0');
 function nowLocalISO(){ const d=new Date();
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
 const fmtClock=d=>{ const t=new Date(d); return pad(t.getHours())+':'+pad(t.getMinutes()); };
-function fmtDT(v){ if(!v) return '–'; const d=new Date(v);
-  return pad(d.getDate())+'.'+pad(d.getMonth()+1)+' · '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+const fmtHM=iso=>iso?iso.slice(11,16):'–';
+const fmtDate=iso=>iso?iso.slice(8,10)+'.'+iso.slice(5,7)+'.'+iso.slice(2,4):'–';
+const fmtDT=v=>v?fmtDate(v)+' · '+fmtHM(v):'–';
 const esc=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const uid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmtW=w=>(w==null||w==='')?'':(Number(w)%1?String(w).replace('.',','):String(w))+'g';
+const fmtD=d=>(d==null||d==='')?'–':String(Number(d)).replace('.',',');
+const num=v=>{ if(v===''||v==null) return null; const n=Number(v); return isFinite(n)?n:null; };
 let toastTimer=null;
 function toast(msg,undoFn){
   const t=document.getElementById('toast'); clearTimeout(toastTimer);
@@ -354,11 +420,25 @@ function toast(msg,undoFn){
   if(undoFn){ const b=document.createElement('button'); b.textContent='Rückgängig';
     b.onclick=()=>{ undoFn(); t.classList.remove('show'); }; t.appendChild(b); }
   t.classList.add('show');
-  toastTimer=setTimeout(()=>t.classList.remove('show'), undoFn?5000:2400); }
+  toastTimer=setTimeout(()=>t.classList.remove('show'),undoFn?5000:2600); }
 function vibrate(p){ try{ navigator.vibrate&&navigator.vibrate(p); }catch(e){} }
 async function requestWake(){ try{ if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){} }
 function releaseWake(){ try{ wakeLock&&wakeLock.release(); wakeLock=null; }catch(e){} }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&trip) requestWake(); });
+function haversine(a,b){ const R=6371000,r=x=>x*Math.PI/180;
+  const dLat=r(b.lat-a.lat),dLon=r(b.lon-a.lon);
+  const s=Math.sin(dLat/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(s))); }
+function snapDepth(v){ return Math.max(0.5,Math.min(30,Math.round(v*2)/2)); }
+
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||!trip) return;
+  requestWake();
+  const gapMin=Math.round((Date.now()-lastAutoAt)/60000);
+  if(!paused&&gapMin>=6){
+    const s=await captureSnapshot();
+    addEntry(makeEntry(s,'auto',{notes:`nachgeholt – ${gapMin} min Lücke (App war im Hintergrund)`}));
+    lastAutoAt=Date.now(); secondsLeft=300;
+    renderTripView(); toast(`⏱ Lücke von ${gapMin} min erkannt – Punkt nachgeholt`); } });
 
 // ---------- persistence ----------
 async function loadAll(){
@@ -368,26 +448,108 @@ async function loadAll(){
   baitBox.forEach(b=>{ delete b.weight; delete b.length; });
   try{ const r=await store.get(K_TRIP);
     if(r&&r.value){ const s=JSON.parse(r.value); trip=s.trip; anglers=s.anglers||[]; technique=s.technique;
-      waterTemp=s.waterTemp; paused=s.paused; secondsLeft=s.secondsLeft??300; lastDepth=s.lastDepth||'';
+      waterTemp=s.waterTemp; paused=s.paused; secondsLeft=s.secondsLeft??300;
+      currentDepth=s.currentDepth??num(s.lastDepth); depthSource=s.depthSource||(currentDepth!=null?'manuell':'');
       lastWeight=s.lastWeight||DEFAULT_WEIGHT; lastLength=s.lastLength||DEFAULT_LENGTH;
-      lastKnownLoc=s.lastKnownLoc||lastKnownLoc; lastKnownWx=s.lastKnownWx||lastKnownWx;
+      lastKnownLoc=s.lastKnownLoc||lastKnownLoc; lastKnownWx=Object.assign(lastKnownWx,s.lastKnownWx||{});
       if(technique&&technique.type==='Stehend') technique.type='Werfen'; } }catch(e){}
   renderDiag(); renderAnglerChips(); renderSetupBaits(); renderBaitBox();
-  renderLog(); renderStats(); renderTripView();
+  renderTripList(); renderStats(); renderTripView();
   if(trip){ startTimer(); requestWake(); } }
 const saveEntries=()=>store.set(K_ENTRIES,JSON.stringify(entries));
 const saveBaits=()=>store.set(K_BAITS,JSON.stringify(baitBox));
-const saveTripState=()=>store.set(K_TRIP,JSON.stringify({trip,anglers,technique,waterTemp,paused,secondsLeft,lastDepth,lastWeight,lastLength,lastKnownLoc,lastKnownWx}));
+const saveTripState=()=>store.set(K_TRIP,JSON.stringify({trip,anglers,technique,waterTemp,paused,secondsLeft,
+  currentDepth,depthSource,lastWeight,lastLength,lastKnownLoc,lastKnownWx}));
 
 document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
   tab.classList.add('active'); document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
-  if(tab.dataset.tab==='stats') renderStats(); }));
-document.getElementById('logFilter').addEventListener('click',e=>{
-  const c=e.target.closest('.chip'); if(!c) return;
-  document.querySelectorAll('#logFilter .chip').forEach(x=>x.classList.remove('sel'));
-  c.classList.add('sel'); logFilter=c.dataset.f; renderLog(); });
+  if(tab.dataset.tab==='stats') renderStats();
+  if(tab.dataset.tab==='trips'){ openTripId=null; renderTripList(); } }));
+
+// ================= TIEFENKARTE =================
+function depthPoints(){
+  return entries.filter(e=>num(e.depth)!=null&&num(e.lat)!=null&&num(e.lon)!=null)
+    .map(e=>({lat:num(e.lat),lon:num(e.lon),depth:num(e.depth),dt:e.datetime,src:e.depthsource||''})); }
+function suggestDepth(loc){
+  if(!loc||loc.lat==null) return null;
+  const pts=depthPoints(); if(!pts.length) return null;
+  let best=null,bd=Infinity;
+  pts.forEach(p=>{ const d=haversine(loc,p); if(d<bd){ bd=d; best=p; } });
+  if(!best||bd>SUGGEST_RADIUS_M) return null;
+  const near=pts.filter(p=>haversine(loc,p)<=SUGGEST_RADIUS_M);
+  const avg=near.reduce((a,b)=>a+b.depth,0)/near.length;
+  return { depth:snapDepth(avg), dist:Math.round(bd), n:near.length }; }
+function depthColor(d){
+  return d<2?'#8FD3EF':d<4?'#57B0DC':d<6?'#2E86C1':d<8?'#1F618D':d<12?'#154360':'#0B2A3F'; }
+
+function renderDepthPanel(){
+  const v=document.getElementById('depthVal'); if(!v||!trip) return;
+  v.innerHTML = currentDepth!=null ? `${fmtD(currentDepth)}<span>m</span>` : `–<span>m</span>`;
+  const s=document.getElementById('depthSrc');
+  s.textContent = !currentDepth?'nicht gesetzt':depthSource==='karte'?'aus Tiefenkarte':depthSource==='manuell'?'gemessen':'mitgeführt';
+  const sg=document.getElementById('depthSuggest');
+  currentSuggestion=suggestDepth(lastKnownLoc);
+  if(currentSuggestion&&(currentDepth==null||Math.abs(currentSuggestion.depth-currentDepth)>=0.5)){
+    sg.innerHTML=`<div class="depth-sugg" id="depthSuggBtn">
+      <span>Tiefenkarte: <b>${fmtD(currentSuggestion.depth)} m</b> · ${currentSuggestion.n} Messung(en), ${currentSuggestion.dist} m entfernt</span>
+      <span>übernehmen →</span></div>`;
+    document.getElementById('depthSuggBtn').addEventListener('click',()=>{
+      currentDepth=currentSuggestion.depth; depthSource='karte'; vibrate(15);
+      saveTripState(); renderDepthPanel(); toast('Tiefe aus Karte übernommen'); });
+  } else sg.innerHTML=''; }
+
+document.querySelector('.depth-ctrl').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='depthSet'){ openDepthPicker(); return; }
+  const d=Number(b.dataset.d);
+  currentDepth=snapDepth((currentDepth??5)+d); depthSource='manuell';
+  vibrate(10); saveTripState(); renderDepthPanel(); });
+
+function openDepthPicker(){
+  const voiceOk=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+  openModal(`<h3>Wassertiefe setzen</h3>
+    ${voiceOk?`<button class="voice-btn" id="dvBtn">🎤 „Tiefe sechs komma fünf"</button>
+      <div class="voice-out" id="dvOut"></div>`:''}
+    <div class="card" style="margin-top:12px;">${wheelHtml('dPick',DEPTHS,'m')}</div>
+    <div class="confirm-row"><button class="btn btn-brass" id="dpOk">Übernehmen</button>
+    <button class="btn" id="dpCancel">Abbrechen</button></div>`);
+  initWheel('dPick',currentDepth??5);
+  document.getElementById('dpCancel').addEventListener('click',closeModal);
+  document.getElementById('dpOk').addEventListener('click',()=>{
+    currentDepth=readWheel('dPick'); depthSource='manuell';
+    saveTripState(); closeModal(); renderDepthPanel(); toast(`Tiefe: ${fmtD(currentDepth)} m`); });
+  if(voiceOk){
+    const btn=document.getElementById('dvBtn'),out=document.getElementById('dvOut');
+    btn.addEventListener('click',()=>{
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      const rec=new SR(); rec.lang='de-DE'; rec.interimResults=false;
+      btn.classList.add('listening'); btn.textContent='🎤 Hört zu…'; out.textContent='';
+      rec.onresult=ev=>{
+        const txt=ev.results[0][0].transcript; const d=parseDepthCommand(txt);
+        if(d==null){ out.textContent='Nicht verstanden: „'+txt+'"'; return; }
+        currentDepth=d; depthSource='manuell'; vibrate(30);
+        saveTripState(); closeModal(); renderDepthPanel(); toast(`Tiefe: ${fmtD(d)} m`); };
+      rec.onerror=ev=>{ out.textContent=ev.error==='network'?'Kein Netz – bitte scrollen.':'Fehler: '+ev.error; };
+      rec.onend=()=>{ btn.classList.remove('listening'); btn.textContent='🎤 „Tiefe sechs komma fünf"'; };
+      try{ rec.start(); }catch(e){ out.textContent='Start fehlgeschlagen.'; } }); } }
+
+const NUMWORDS={'null':0,'eins':1,'ein':1,'eine':1,'zwei':2,'drei':3,'vier':4,'fünf':5,'funf':5,'sechs':6,
+  'sieben':7,'acht':8,'neun':9,'zehn':10,'elf':11,'zwölf':12,'zwolf':12,'dreizehn':13,'vierzehn':14,
+  'fünfzehn':15,'funfzehn':15,'sechzehn':16,'siebzehn':17,'achtzehn':18,'neunzehn':19,'zwanzig':20,
+  'einundzwanzig':21,'zweiundzwanzig':22,'dreiundzwanzig':23,'vierundzwanzig':24,'fünfundzwanzig':25,
+  'sechsundzwanzig':26,'siebenundzwanzig':27,'achtundzwanzig':28,'neunundzwanzig':29,'dreißig':30,'dreissig':30};
+function parseDepthCommand(txt){
+  let t=txt.toLowerCase().replace(/\bmeter\b|\btiefe\b/g,' ').replace(/\bkomma\b|\bpunkt\b/g,',');
+  Object.keys(NUMWORDS).sort((a,b)=>b.length-a.length).forEach(w=>{
+    t=t.replace(new RegExp('\\b'+w+'\\b','g'),' '+NUMWORDS[w]+' '); });
+  t=t.replace(/\s*,\s*/g,',');
+  const m=t.match(/(\d+)(?:,(\d+))?/);
+  if(!m) return null;
+  const val=parseFloat(m[1]+(m[2]?'.'+m[2]:''));
+  if(!isFinite(val)||val<=0||val>40) return null;
+  return snapDepth(val); }
 
 // ---------- geo / weather ----------
 const GEO_ERR={1:'Zugriff verweigert',2:'Kein Signal',3:'Zeitüberschreitung'};
@@ -398,22 +560,40 @@ function getGeo(){ return new Promise(res=>{
     p=>{ diag.geoLast=`✓ ${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)} (±${Math.round(p.coords.accuracy)}m)`;
       res({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,at:Date.now()}); },
     e=>{ diag.geoLast='✗ '+(GEO_ERR[e.code]||('Fehler '+e.code)); res(null); },
-    {enableHighAccuracy:true,timeout:15000,maximumAge:30000}); }); }
+    {enableHighAccuracy:true,timeout:15000,maximumAge:10000}); }); }
 async function getWeather(lat,lon){
-  try{ const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure`);
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+      +`&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,pressure_msl,surface_pressure`
+      +`&hourly=pressure_msl&past_hours=6&forecast_hours=1`;
+    const r=await fetch(url);
     if(!r.ok){ diag.wxLast='✗ Server '+r.status; return null; }
-    const c=(await r.json()).current, dirs=['N','NO','O','SO','S','SW','W','NW'];
-    diag.wxLast=`✓ ${c.temperature_2m}°C, ${c.surface_pressure} hPa`;
-    return {pressure:c.surface_pressure??null,airtemp:c.temperature_2m??null,wind:c.wind_speed_10m??null,
-      winddir:c.wind_direction_10m!=null?dirs[Math.round(c.wind_direction_10m/45)%8]:'',rain:c.precipitation??null};
+    const j=await r.json(),c=j.current,dirs=['N','NO','O','SO','S','SW','W','NW'];
+    let trend=null;
+    try{ const times=j.hourly.time,vals=j.hourly.pressure_msl;
+      const target=Date.now()-3*3600*1000; let bi=-1,bd=Infinity;
+      times.forEach((t,i)=>{ const d=Math.abs(new Date(t).getTime()-target);
+        if(d<bd&&vals[i]!=null){ bd=d; bi=i; } });
+      if(bi>=0&&c.pressure_msl!=null&&bd<2*3600*1000) trend=Math.round((c.pressure_msl-vals[bi])*10)/10;
+    }catch(e){}
+    diag.wxLast=`✓ ${c.temperature_2m}°C, ${c.pressure_msl} hPa${trend!=null?` (3h ${trend>0?'+':''}${trend})`:''}`;
+    return { pressure:c.pressure_msl??null, pressuresurface:c.surface_pressure??null, pressuretrend3h:trend,
+      airtemp:c.temperature_2m??null, wind:c.wind_speed_10m??null,
+      winddir:c.wind_direction_10m!=null?dirs[Math.round(c.wind_direction_10m/45)%8]:'', rain:c.precipitation??null };
   }catch(e){ diag.wxLast='✗ Offline'; return null; } }
-async function captureSnapshot(){
-  const g=await getGeo(); if(g) lastKnownLoc=g;
-  const loc=g||lastKnownLoc; let wx=null;
-  if(loc.lat!=null){ wx=await getWeather(loc.lat,loc.lon); if(wx) lastKnownWx=wx; } else diag.wxLast='– (kein Standort)';
-  const w=wx||lastKnownWx; renderDiag(); saveTripState();
-  return {datetime:nowLocalISO(),lat:loc.lat??'',lon:loc.lon??'',pressure:w.pressure??'',airtemp:w.airtemp??'',
-    wind:w.wind??'',winddir:w.winddir??'',rain:w.rain??''}; }
+async function captureSnapshot(fixedLoc,fixedTime){
+  let loc=fixedLoc;
+  if(!loc){ const g=await getGeo(); if(g) lastKnownLoc=g; loc=g||lastKnownLoc; }
+  let wx=null;
+  if(loc&&loc.lat!=null){ wx=await getWeather(loc.lat,loc.lon); if(wx) lastKnownWx=wx; } else diag.wxLast='– (kein Standort)';
+  const w=wx||lastKnownWx; renderDiag(); saveTripState(); updatePressLabel(w);
+  if(trip) renderDepthPanel();
+  return { datetime:fixedTime||nowLocalISO(), lat:loc?.lat??'', lon:loc?.lon??'',
+    pressure:w.pressure??'', pressuresurface:w.pressuresurface??'', pressuretrend3h:w.pressuretrend3h??'',
+    airtemp:w.airtemp??'', wind:w.wind??'', winddir:w.winddir??'', rain:w.rain??'' }; }
+function updatePressLabel(w){
+  const pl=document.getElementById('pressLabel'); if(!pl||!trip) return;
+  pl.textContent = w.pressure!=null ? w.pressure+' hPa'+(w.pressuretrend3h!=null?` (3h ${w.pressuretrend3h>0?'+':''}${w.pressuretrend3h})`:'') : '–'; }
 function renderDiag(){
   const b=document.getElementById('diagBox'); if(!b) return;
   const sc=store.mode==='memory'?'err':(store.mode==='localStorage'?'ok':'warn');
@@ -427,8 +607,7 @@ document.getElementById('retryFixBtn').addEventListener('click',async e=>{
   e.target.disabled=false; e.target.textContent='📍 Standort & Wetter jetzt abrufen'; });
 
 // ================= KÖDERKISTE =================
-function baitLabel(b){
-  return [b.color||b.type, b.length||'', b.weight?fmtW(b.weight):''].filter(Boolean).join(' · '); }
+function baitLabel(b){ return [b.color||b.type,b.length||'',b.weight?fmtW(b.weight):''].filter(Boolean).join(' · '); }
 function baitTileHtml(b){
   const img=b.photo?`<img src="${b.photo}" alt="">`:`<div class="ph">🎣</div>`;
   return `<div class="bait-tile" data-bid="${b.id}">${img}
@@ -439,13 +618,12 @@ function renderBaitBox(){
     +`<div class="bait-tile add" id="addBaitTile"><div style="font-size:26px;">＋</div>Köder<br>anlegen</div>`;
   g.querySelectorAll('.bait-tile[data-bid]').forEach(t=>t.addEventListener('click',()=>editBait(t.dataset.bid)));
   document.getElementById('addBaitTile').addEventListener('click',()=>editBait(null)); }
-
 let photoCallback=null;
 document.getElementById('photoInput').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f||!photoCallback){ e.target.value=''; return; }
   const rd=new FileReader();
   rd.onload=()=>{ const img=new Image();
-    img.onload=()=>{ const max=260, sc=Math.min(max/img.width,max/img.height,1);
+    img.onload=()=>{ const max=260,sc=Math.min(max/img.width,max/img.height,1);
       const c=document.createElement('canvas'); c.width=img.width*sc; c.height=img.height*sc;
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
       photoCallback(c.toDataURL('image/jpeg',0.7)); };
@@ -487,27 +665,28 @@ function editBait(id){
   document.getElementById('bSave').addEventListener('click',()=>{
     let type=b.type;
     if(type==='Andere'){ const c=document.getElementById('bTypeCustom').value.trim(); if(c) type=c; }
-    const rec={ id:b.id, type, color:document.getElementById('bColor').value.trim(), photo:b.photo };
+    const rec={id:b.id,type,color:document.getElementById('bColor').value.trim(),photo:b.photo};
     if(!rec.color&&!rec.type){ toast('Bitte Typ oder Modell angeben'); return; }
     const i=baitBox.findIndex(x=>x.id===rec.id);
     if(i>=0) baitBox[i]=rec; else baitBox.push(rec);
     saveBaits(); renderBaitBox(); renderSetupBaits(); closeModal(); toast('Köder gespeichert'); }); }
 
 // ---------- Rad ----------
-function wheelHtml(id,values,sel){
+function wheelHtml(id,values,unit){
   wheelVals[id]=values;
   const items=values.map(v=>`<div class="wheel-item">${String(v).replace('.',',')}</div>`).join('');
   return `<div class="wheel-wrap"><div class="wheel" id="${id}">
     <div style="height:50px;"></div>${items}<div style="height:50px;"></div></div>
-    <div class="wheel-band"></div><div class="wheel-unit">g</div></div>`; }
+    <div class="wheel-band"></div><div class="wheel-unit">${unit||'g'}</div></div>`; }
 function initWheel(id,val){
   const el=document.getElementById(id); if(!el) return;
   const vs=wheelVals[id]||WEIGHTS;
-  let i=vs.indexOf(Number(val)); if(i<0) i=vs.indexOf(DEFAULT_WEIGHT); if(i<0) i=0;
+  let i=vs.indexOf(Number(val)); if(i<0){ let bd=Infinity; vs.forEach((v,j)=>{ const d=Math.abs(v-Number(val)); if(d<bd){bd=d;i=j;} }); }
+  if(i<0) i=0;
   requestAnimationFrame(()=>{ el.scrollTop=i*50; }); }
 function readWheel(id){
-  const el=document.getElementById(id), vs=wheelVals[id]||WEIGHTS;
-  if(!el) return DEFAULT_WEIGHT;
+  const el=document.getElementById(id),vs=wheelVals[id]||WEIGHTS;
+  if(!el) return vs[0];
   return vs[Math.max(0,Math.min(vs.length-1,Math.round(el.scrollTop/50)))]; }
 function nearestWeight(n){ return WEIGHTS.reduce((a,b)=>Math.abs(b-n)<Math.abs(a-n)?b:a); }
 
@@ -526,17 +705,16 @@ function openBaitPicker(title,onPick){
   document.getElementById('pickNew').addEventListener('click',()=>{ closeModal(); editBait(null); });
   document.getElementById('pickCancel').addEventListener('click',closeModal);
   if(voiceOk) setupVoice(onPick,title); }
-
 function askBaitDetails(bait,onPick,backTitle){
-  const isGummi = bait.type==='Gummifisch';
-  const preL = bait.length||lastLength, preW = bait.weight?Number(bait.weight):lastWeight;
-  let selL = preL;
+  const isGummi=bait.type==='Gummifisch';
+  const preL=bait.length||lastLength,preW=bait.weight?Number(bait.weight):lastWeight;
+  let selL=preL;
   openModal(`<h3>${esc(bait.color||bait.type)}</h3>
     <div class="card">
       ${bait.photo?`<div style="text-align:center;margin-bottom:14px;"><img src="${bait.photo}" style="width:96px;height:96px;object-fit:cover;border-radius:9px;border:2px solid var(--line);"></div>`:''}
       <div class="field"><label>Köderlänge</label>
         <div class="chips big" id="lChips">${LENGTHS.map(l=>`<div class="chip ${l===preL?'sel':''}" data-val="${l}">${l}</div>`).join('')}</div></div>
-      ${isGummi?`<div class="field" style="margin-top:14px;"><label>Kopfgewicht</label>${wheelHtml('wPick',WEIGHTS,preW)}</div>`:''}
+      ${isGummi?`<div class="field" style="margin-top:14px;"><label>Kopfgewicht</label>${wheelHtml('wPick',WEIGHTS,'g')}</div>`:''}
     </div>
     <div class="confirm-row"><button class="btn btn-brass" id="dOk">Übernehmen</button>
     <button class="btn" id="dBack">Zurück</button></div>`);
@@ -546,14 +724,12 @@ function askBaitDetails(bait,onPick,backTitle){
     c.classList.add('sel'); selL=c.dataset.val; }));
   document.getElementById('dBack').addEventListener('click',()=>{ closeModal(); openBaitPicker(backTitle||'Köder wählen',onPick); });
   document.getElementById('dOk').addEventListener('click',()=>{
-    const w = isGummi ? readWheel('wPick') : '';
-    lastLength=selL; if(isGummi) lastWeight=w;
-    saveTripState(); closeModal();
+    const w=isGummi?readWheel('wPick'):'';
+    lastLength=selL; if(isGummi) lastWeight=w; saveTripState(); closeModal();
     onPick(Object.assign({},bait,{length:selL,weight:w})); }); }
-
 function setupVoice(onPick,backTitle){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const btn=document.getElementById('vBtn'), out=document.getElementById('vOut');
+  const btn=document.getElementById('vBtn'),out=document.getElementById('vOut');
   btn.addEventListener('click',()=>{
     const rec=new SR(); rec.lang='de-DE'; rec.interimResults=false; rec.maxAlternatives=3;
     btn.classList.add('listening'); btn.textContent='🎤 Hört zu…'; out.textContent='';
@@ -562,43 +738,39 @@ function setupVoice(onPick,backTitle){
       const r=parseBaitCommand(txt);
       if(!r){ out.textContent='Nicht zuordenbar: „'+txt+'" – bitte antippen.'; return; }
       vibrate(30);
-      const needsWeight = r.type==='Gummifisch' && !r.weight;
-      if(r.length && !needsWeight){ lastLength=r.length; if(r.weight) lastWeight=r.weight;
+      const needsWeight=r.type==='Gummifisch'&&!r.weight;
+      if(r.length&&!needsWeight){ lastLength=r.length; if(r.weight) lastWeight=r.weight;
         saveTripState(); closeModal(); onPick(r); }
-      else askBaitDetails(r,onPick,backTitle);
-    };
-    rec.onerror=ev=>{ out.textContent = ev.error==='not-allowed'?'Mikrofon nicht erlaubt.'
-      : ev.error==='network'?'Kein Netz – bitte antippen.':'Fehler: '+ev.error; };
+      else askBaitDetails(r,onPick,backTitle); };
+    rec.onerror=ev=>{ out.textContent=ev.error==='not-allowed'?'Mikrofon nicht erlaubt.'
+      :ev.error==='network'?'Kein Netz – bitte antippen.':'Fehler: '+ev.error; };
     rec.onend=()=>{ btn.classList.remove('listening'); btn.textContent='🎤 Sprachbefehl'; };
     try{ rec.start(); }catch(e){ out.textContent='Start fehlgeschlagen.'; } }); }
-
 function parseLength(t){
   if(/\bgro(ß|ss)e?r?\b|\blange?r?\b|\bxl\b/.test(t)) return 'Groß';
   if(/\bklein(e|er|es)?\b|\bmini\b|\bkurz(e|er)?\b/.test(t)) return 'Klein';
   if(/\bmittel|\bmittlere?r?\b|\bmedium\b/.test(t)) return 'Mittel';
   return ''; }
-
 function parseBaitCommand(txt){
   const t=txt.toLowerCase().replace(/[.,]/g,' ');
   const wm=t.match(/(\d+(?:[.,]\d+)?)\s*(gramm|gram|g\b)/);
-  const weight = wm ? nearestWeight(parseFloat(wm[1].replace(',','.'))) : '';
-  const length = parseLength(t);
+  const weight=wm?nearestWeight(parseFloat(wm[1].replace(',','.'))):'';
+  const length=parseLength(t);
   let best=null,score=0;
   baitBox.forEach(b=>{ let s=0;
     if(b.color&&t.includes(b.color.toLowerCase())) s+=3;
     if(b.type&&t.includes(b.type.toLowerCase())) s+=2;
     if(s>score){ score=s; best=b; } });
-  if(best&&score>=3) return Object.assign({},best,{length, weight: best.type==='Gummifisch'?weight:''});
+  if(best&&score>=3) return Object.assign({},best,{length,weight:best.type==='Gummifisch'?weight:''});
   let type=null;
   for(const bt of BAIT_TYPES){ if(t.includes(bt.toLowerCase())){ type=bt; break; } }
-  if(!type) return (best&&score>=2)?Object.assign({},best,{length, weight: best.type==='Gummifisch'?weight:''}):null;
-  let rest=t.replace(type.toLowerCase(),'')
+  if(!type) return (best&&score>=2)?Object.assign({},best,{length,weight:best.type==='Gummifisch'?weight:''}):null;
+  const rest=t.replace(type.toLowerCase(),'')
     .replace(/(\d+(?:[.,]\d+)?)\s*(gramm|gram|g\b)/,'')
-    .replace(/\bgro(ß|ss)e?r?\b|\bklein(e|er|es)?\b|\bmittel\w*\b|\bmittlere?r?\b|\bmedium\b|\bmini\b|\blange?r?\b|\bkurz(e|er)?\b|\bxl\b/g,'')
-    .trim();
+    .replace(/\bgro(ß|ss)e?r?\b|\bklein(e|er|es)?\b|\bmittel\w*\b|\bmittlere?r?\b|\bmedium\b|\bmini\b|\blange?r?\b|\bkurz(e|er)?\b|\bxl\b/g,'').trim();
   const color=rest.split(/\s+/).filter(Boolean).slice(0,2).join(' ');
-  return { id:'adhoc', type, color: color?color.charAt(0).toUpperCase()+color.slice(1):'',
-    length, weight: type==='Gummifisch'?weight:'', photo:null, adhoc:true }; }
+  return {id:'adhoc',type,color:color?color.charAt(0).toUpperCase()+color.slice(1):'',
+    length,weight:type==='Gummifisch'?weight:'',photo:null,adhoc:true}; }
 
 // ================= SETUP =================
 document.querySelectorAll('#s-techChips .chip').forEach(c=>c.addEventListener('click',()=>{
@@ -618,7 +790,7 @@ function renderAnglerChips(){
     const el=document.getElementById('s-otherWrap');
     el.style.display=el.style.display==='none'?'block':'none'; }); }
 document.getElementById('s-addOther').addEventListener('click',()=>{
-  const i=document.getElementById('s-otherName'), n=i.value.trim(); if(!n) return;
+  const i=document.getElementById('s-otherName'),n=i.value.trim(); if(!n) return;
   if(!setupSelected.includes(n)) setupSelected.push(n);
   i.value=''; document.getElementById('s-otherWrap').style.display='none';
   renderAnglerChips(); renderSetupBaits(); });
@@ -632,7 +804,7 @@ function renderSetupBaits(){
       <div class="meta">${b?esc(b.type+' · '+baitLabel(b)):'Köder wählen →'}</div></div></div>`; }).join('');
   w.querySelectorAll('[data-pick]').forEach(el=>el.addEventListener('click',()=>{
     const n=el.dataset.pick;
-    openBaitPicker('Köder für '+n, b=>{ setupBaits[n]=b; renderSetupBaits(); }); })); }
+    openBaitPicker('Köder für '+n,b=>{ setupBaits[n]=b; renderSetupBaits(); }); })); }
 
 document.getElementById('startTripBtn').addEventListener('click',async ev=>{
   if(!setupTechnique){ toast('Bitte Technik wählen'); return; }
@@ -643,49 +815,68 @@ document.getElementById('startTripBtn').addEventListener('click',async ev=>{
   const snap=await captureSnapshot(); const now=Date.now();
   trip={id:'t'+now,startTime:now}; technique={type:setupTechnique,start:now};
   anglers=setupSelected.map(n=>({name:n,bait:Object.assign({},setupBaits[n],{start:now})}));
-  paused=false; secondsLeft=300;
+  paused=false; secondsLeft=300; lastAutoAt=Date.now();
+  currentDepth=null; depthSource='';
+  const sg=suggestDepth(lastKnownLoc);
+  if(sg){ currentDepth=sg.depth; depthSource='karte'; }
   anglers.forEach(a=>addEntry(makeEntry(snap,'start',{angler:a.name,baittype:a.bait.type,baitcolor:a.bait.color,
-    baitlength:a.bait.length||'', baitweight:a.bait.weight})));
+    baitlength:a.bait.length||'',baitweight:a.bait.weight})));
   await saveTripState(); requestWake();
   btn.disabled=false; btn.textContent='▶ Trip starten';
-  renderTripView(); startTimer(); toast('▶ Trip gestartet'); });
+  renderTripView(); startTimer(); toast('▶ Trip gestartet');
+  if(!currentDepth) setTimeout(()=>toast('Tipp: Wassertiefe oben setzen – sie läuft dann mit'),2800); });
 
 // ---------- entries ----------
 function makeEntry(snap,type,extra){
   return Object.assign({ id:uid(), tripId:trip?trip.id:'', type, datetime:snap.datetime,
-    lat:snap.lat, lon:snap.lon, pressure:snap.pressure, airtemp:snap.airtemp, wind:snap.wind, winddir:snap.winddir, rain:snap.rain,
+    lat:snap.lat, lon:snap.lon, pressure:snap.pressure, pressuresurface:snap.pressuresurface??'',
+    pressuretrend3h:snap.pressuretrend3h??'', airtemp:snap.airtemp, wind:snap.wind, winddir:snap.winddir, rain:snap.rain,
     watertemp:waterTemp??'', technique:technique?technique.type:'', angler:'',
+    depth: currentDepth??'', depthsource: currentDepth!=null?(depthSource==='manuell'?'mitgefuehrt':depthSource):'',
     baittype:'', baitcolor:'', baitlength:'', baitweight:'', baitdurationmin:'', techdurationmin:'',
-    depth:'', bite:0, catch:0, species:'', fishlen:'', fishweight:'', notes:'' }, extra||{}); }
-function addEntry(e){ entries.unshift(e); lastAddedId=e.id; saveEntries(); renderLog(); renderStats(); }
+    bite:0, catch:0, species:'', fishlen:'', fishweight:'', notes:'' }, extra||{}); }
+function addEntry(e){ entries.unshift(e); lastAddedId=e.id; saveEntries(); refreshLists(); }
 function undoLast(){ if(!lastAddedId) return; entries=entries.filter(e=>e.id!==lastAddedId); lastAddedId=null;
-  saveEntries(); renderLog(); renderStats(); toast('Rückgängig gemacht'); }
+  saveEntries(); refreshLists(); toast('Rückgängig gemacht'); }
+function refreshLists(){ renderRecent(); renderTripList(); renderStats(); }
 
 // ---------- active view ----------
 function renderTripView(){
-  const su=document.getElementById('setupView'), av=document.getElementById('activeView');
+  const su=document.getElementById('setupView'),av=document.getElementById('activeView');
   if(trip){
     su.style.display='none'; av.style.display='block';
     document.getElementById('tripStartedAt').textContent=fmtClock(trip.startTime);
-    document.getElementById('lastFixLabel').textContent = lastKnownLoc.lat!=null
+    document.getElementById('lastFixLabel').textContent=lastKnownLoc.lat!=null
       ? lastKnownLoc.lat.toFixed(4)+', '+lastKnownLoc.lon.toFixed(4):'kein Fix';
+    updatePressLabel(lastKnownWx); renderDepthPanel();
     document.querySelectorAll('#techChipsActive .chip').forEach(c=>c.classList.toggle('sel',technique&&c.dataset.val===technique.type));
     document.getElementById('a-watertemp').value=waterTemp??'';
-    document.getElementById('anglerCards').innerHTML=anglers.map(a=>`
-      <div class="angler-mini">${a.bait.photo?`<img src="${a.bait.photo}">`:`<div class="swatch">🎣</div>`}
+    const ac=document.getElementById('anglerCards');
+    ac.innerHTML=anglers.map(a=>`
+      <div class="angler-mini" data-fix="${esc(a.name)}">${a.bait.photo?`<img src="${a.bait.photo}">`:`<div class="swatch">🎣</div>`}
       <div><div class="name">${esc(a.name)}</div>
-      <div class="meta">${esc(a.bait.type+' · '+baitLabel(a.bait))} · seit ${fmtClock(a.bait.start)}</div></div></div>`).join('');
-    updatePauseButton(); updateClockDisplay();
+      <div class="meta">${esc(a.bait.type+' · '+baitLabel(a.bait))} · seit ${fmtClock(a.bait.start)}</div></div>
+      <span class="edit">ändern</span></div>`).join('');
+    ac.querySelectorAll('[data-fix]').forEach(el=>el.addEventListener('click',()=>correctActiveBait(el.dataset.fix)));
+    updatePauseButton(); updateClockDisplay(); renderRecent();
   } else { su.style.display='block'; av.style.display='none'; renderDiag(); } }
 document.getElementById('a-watertemp').addEventListener('input',e=>{ waterTemp=e.target.value; saveTripState(); });
 document.getElementById('techChipsActive').addEventListener('click',async e=>{
   const c=e.target.closest('.chip'); if(!c||!trip) return;
   const nv=c.dataset.val; if(technique&&technique.type===nv) return;
-  const old=technique, dur=old?Math.round((Date.now()-old.start)/60000):'';
+  const old=technique,dur=old?Math.round((Date.now()-old.start)/60000):'';
   const snap={datetime:nowLocalISO(),lat:lastKnownLoc.lat??'',lon:lastKnownLoc.lon??'',pressure:'',airtemp:'',wind:'',winddir:'',rain:''};
   technique={type:nv,start:Date.now()};
   addEntry(makeEntry(snap,'technikwechsel',{technique:old?old.type:'',techdurationmin:dur,notes:'neue Technik: '+nv}));
   await saveTripState(); renderTripView(); vibrate(20); toast('Technik: '+nv); });
+function correctActiveBait(name){
+  const ao=anglers.find(a=>a.name===name); if(!ao) return;
+  openBaitPicker('Köder von '+name+' korrigieren',b=>{
+    const start=ao.bait.start; ao.bait=Object.assign({},b,{start});
+    const last=entries.find(e=>e.tripId===trip.id&&e.angler===name&&(e.type==='koederwechsel'||e.type==='start'));
+    if(last&&last.type==='start'){ last.baittype=b.type; last.baitcolor=b.color; last.baitlength=b.length||''; last.baitweight=b.weight; }
+    else if(last&&last.type==='koederwechsel'){ last.notes='neuer Köder: '+b.type+' '+baitLabel(b); }
+    saveEntries(); saveTripState(); renderTripView(); toast('Köder korrigiert'); }); }
 function updatePauseButton(){
   const b=document.getElementById('pauseBtn');
   b.classList.toggle('pause-on',paused);
@@ -693,7 +884,7 @@ function updatePauseButton(){
   document.getElementById('timerBar').classList.toggle('paused',paused);
   document.getElementById('timerLabel').textContent=paused?'Pausiert':'Nächster Auto-Log in'; }
 function updateClockDisplay(){
-  const m=Math.floor(secondsLeft/60), s=secondsLeft%60;
+  const m=Math.floor(secondsLeft/60),s=secondsLeft%60;
   document.getElementById('clockText').textContent=paused?'––:––':pad(m)+':'+pad(s);
   document.getElementById('timerBar').classList.toggle('due',!paused&&secondsLeft<=0); }
 function startTimer(){
@@ -701,211 +892,516 @@ function startTimer(){
   timerHandle=setInterval(async()=>{
     if(!trip||paused) return;
     secondsLeft--;
-    if(secondsLeft<=0){ secondsLeft=300; const s=await captureSnapshot(); addEntry(makeEntry(s,'auto')); renderTripView(); }
+    if(secondsLeft<=0){ secondsLeft=300; lastAutoAt=Date.now();
+      const s=await captureSnapshot(); addEntry(makeEntry(s,'auto')); renderTripView(); }
     updateClockDisplay(); saveTripState(); },1000); }
 
-// ---------- actions ----------
+// ---------- Aktionen ----------
 document.getElementById('actionGrid').addEventListener('click',e=>{
   const b=e.target.closest('.action-btn'); if(!b) return;
   const a=b.dataset.action;
   if(a==='pause'){ togglePause(); return; }
-  if(a==='ende'){ renderEndConfirm(); return; }
-  panelAngler=anglers.length===1?anglers[0].name:null;
-  if(a==='koederwechsel'){ startBaitChange(); return; }
-  renderActionPanel(a); });
+  if(a==='ende'){ confirmEnd(); return; }
+  beginEvent(a); });
+function beginEvent(action){
+  pendingEvent={ datetime:nowLocalISO(), loc:null, status:'pending', t0:Date.now() };
+  vibrate(15);
+  getGeo().then(g=>{
+    if(g){ lastKnownLoc=g; pendingEvent.loc=g; pendingEvent.status='ok'; pendingEvent.acc=Math.round(g.acc); }
+    else { pendingEvent.loc=lastKnownLoc.lat!=null?lastKnownLoc:null; pendingEvent.status=pendingEvent.loc?'stale':'fail'; }
+    updateFixBadge(); });
+  if(action==='koederwechsel') startBaitChange(); else openEventModal(action); }
+function fixBadgeHtml(){ return `<div class="fixbadge" id="fixBadge">📍 Position wird gesichert…</div>`; }
+function updateFixBadge(){
+  const el=document.getElementById('fixBadge'); if(!el||!pendingEvent) return;
+  if(pendingEvent.status==='ok'){ el.className='fixbadge ok';
+    el.textContent=`📍 Position gesichert um ${fmtHM(pendingEvent.datetime)} (±${pendingEvent.acc} m)`; }
+  else if(pendingEvent.status==='stale'){ el.className='fixbadge';
+    el.textContent=`📍 Kein frischer Fix – letzte bekannte Position wird verwendet`; }
+  else if(pendingEvent.status==='fail'){ el.className='fixbadge err'; el.textContent=`📍 Kein Standort verfügbar`; } }
 async function togglePause(){
   const s={datetime:nowLocalISO(),lat:lastKnownLoc.lat??'',lon:lastKnownLoc.lon??'',pressure:'',airtemp:'',wind:'',winddir:'',rain:''};
   paused=!paused; addEntry(makeEntry(s,paused?'pause':'fortsetzung'));
   updatePauseButton(); saveTripState(); toast(paused?'⏸ Pausiert':'▶ Fortgesetzt'); }
-function anglerChipsHtml(){
+
+let modalAngler=null,modalSpecies=null;
+function anglerChipsHtml(sel){
   if(anglers.length<=1) return '';
-  return `<div class="field"><label>Wer?</label><div class="chips" id="pAnglerChips">
-    ${anglers.map(a=>`<div class="chip" data-val="${esc(a.name)}">${esc(a.name)}</div>`).join('')}</div></div>`; }
+  return `<div class="field"><label>Wer?</label><div class="chips" id="mAngler">
+    ${anglers.map(a=>`<div class="chip ${sel===a.name?'sel':''}" data-val="${esc(a.name)}">${esc(a.name)}</div>`).join('')}</div></div>`; }
 function bindAnglerChips(){
-  const el=document.getElementById('pAnglerChips'); if(!el) return;
+  const el=document.getElementById('mAngler'); if(!el) return;
   el.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
-    el.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); panelAngler=c.dataset.val; })); }
-
-function renderActionPanel(action){
-  const p=document.getElementById('actionPanel'); panelSpecies=null;
+    el.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); modalAngler=c.dataset.val; })); }
+function depthFieldHtml(){
+  return `<div class="field"><label>Wassertiefe (m) – aus dem mitlaufenden Wert</label>
+    <input type="number" id="mDepth" step="0.5" inputmode="decimal" value="${currentDepth??''}"></div>`; }
+function openEventModal(action){
+  modalAngler=anglers.length===1?anglers[0].name:null; modalSpecies=null;
   if(action==='biss'){
-    p.innerHTML=`<div class="card"><h2>Biss</h2>${anglerChipsHtml()}
-      <div class="field"><label>Wassertiefe (m)</label><input type="number" id="pDepth" step="0.1" inputmode="decimal" value="${esc(lastDepth)}"></div>
-      <div class="field"><label>Notiz (optional)</label><textarea id="pNotes"></textarea></div>
-      <div class="confirm-row"><button class="btn btn-brass" id="pSave">Speichern</button>
-      <button class="btn" id="pCancel">Abbrechen</button></div></div>`;
-    bindAnglerChips();
+    openModal(`<h3>〰 Biss</h3>${fixBadgeHtml()}<div class="card">${anglerChipsHtml(modalAngler)}
+      ${depthFieldHtml()}
+      <div class="field"><label>Notiz (optional)</label><textarea id="mNotes"></textarea></div></div>
+      <div class="confirm-row"><button class="btn btn-brass" id="mSave">Speichern</button>
+      <button class="btn" id="mCancel">Abbrechen</button></div>`);
   } else {
-    p.innerHTML=`<div class="card"><h2>Fisch gefangen</h2>${anglerChipsHtml()}
-      <div class="field"><label>Fischart</label><div class="chips" id="pSpecies">
+    openModal(`<h3>🐟 Fisch gefangen</h3>${fixBadgeHtml()}<div class="card">${anglerChipsHtml(modalAngler)}
+      <div class="field"><label>Fischart</label><div class="chips big" id="mSpecies">
         ${SPECIES.map(s=>`<div class="chip" data-val="${s}">${s}</div>`).join('')}</div>
-        <input type="text" id="pSpeciesCustom" placeholder="Art…" style="display:none;margin-top:8px;"></div>
-      <div class="field"><label>Wassertiefe (m)</label><input type="number" id="pDepth" step="0.1" inputmode="decimal" value="${esc(lastDepth)}"></div>
-      <div class="row2"><div class="field"><label>Länge (cm)</label><input type="number" id="pLen" step="0.1" inputmode="decimal"></div>
-      <div class="field"><label>Gewicht (kg)</label><input type="number" id="pWeight" step="0.01" inputmode="decimal"></div></div>
-      <div class="field"><label>Notiz (optional)</label><textarea id="pNotes"></textarea></div>
-      <div class="confirm-row"><button class="btn btn-brass" id="pSave">Speichern</button>
-      <button class="btn" id="pCancel">Abbrechen</button></div></div>`;
-    bindAnglerChips();
-    document.querySelectorAll('#pSpecies .chip').forEach(c=>c.addEventListener('click',()=>{
-      document.querySelectorAll('#pSpecies .chip').forEach(x=>x.classList.remove('sel'));
-      c.classList.add('sel'); panelSpecies=c.dataset.val;
-      document.getElementById('pSpeciesCustom').style.display=panelSpecies==='Andere'?'block':'none'; }));
+        <input type="text" id="mSpeciesCustom" placeholder="Art…" style="display:none;margin-top:8px;"></div>
+      ${depthFieldHtml()}
+      <div class="row2"><div class="field"><label>Länge (cm)</label><input type="number" id="mLen" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Gewicht (kg)</label><input type="number" id="mWeight" step="0.01" inputmode="decimal"></div></div>
+      <div class="field"><label>Notiz (optional)</label><textarea id="mNotes"></textarea></div></div>
+      <div class="confirm-row"><button class="btn btn-brass" id="mSave">Speichern</button>
+      <button class="btn" id="mCancel">Abbrechen</button></div>`);
+    document.querySelectorAll('#mSpecies .chip').forEach(c=>c.addEventListener('click',()=>{
+      document.querySelectorAll('#mSpecies .chip').forEach(x=>x.classList.remove('sel'));
+      c.classList.add('sel'); modalSpecies=c.dataset.val;
+      document.getElementById('mSpeciesCustom').style.display=modalSpecies==='Andere'?'block':'none'; }));
   }
-  document.getElementById('pCancel').addEventListener('click',()=>{ p.innerHTML=''; });
-  document.getElementById('pSave').addEventListener('click',()=>savePanel(action)); }
+  bindAnglerChips(); updateFixBadge();
+  document.getElementById('mCancel').addEventListener('click',()=>{ pendingEvent=null; closeModal(); });
+  document.getElementById('mSave').addEventListener('click',()=>saveEvent(action)); }
 
-async function savePanel(action){
-  if(anglers.length>1&&!panelAngler){ toast('Bitte Angler wählen'); return; }
-  const name=panelAngler||anglers[0].name, ao=anglers.find(a=>a.name===name);
-  const btn=document.getElementById('pSave'); btn.disabled=true; btn.textContent='Speichere…';
-  const notes=document.getElementById('pNotes')?document.getElementById('pNotes').value:'';
-  const depth=document.getElementById('pDepth').value; if(depth) lastDepth=depth;
-  const snap=await captureSnapshot();
-  const baitFields={ baittype:ao.bait.type, baitcolor:ao.bait.color, baitlength:ao.bait.length||'', baitweight:ao.bait.weight };
+async function saveEvent(action){
+  if(anglers.length>1&&!modalAngler){ toast('Bitte Angler wählen'); return; }
+  if(action==='fisch'&&!modalSpecies){ toast('Bitte Fischart wählen'); return; }
+  const name=modalAngler||anglers[0].name, ao=anglers.find(a=>a.name===name);
+  const btn=document.getElementById('mSave'); btn.disabled=true; btn.textContent='Speichere…';
+  const notes=document.getElementById('mNotes').value;
+  const dv=num(document.getElementById('mDepth').value);
+  let dsrc='';
+  if(dv!=null){ if(currentDepth==null||Math.abs(dv-currentDepth)>0.01){ currentDepth=dv; depthSource='manuell'; dsrc='manuell'; }
+    else dsrc=depthSource==='karte'?'karte':'mitgefuehrt'; }
+  const bf={baittype:ao.bait.type,baitcolor:ao.bait.color,baitlength:ao.bait.length||'',baitweight:ao.bait.weight};
+  const pe=pendingEvent||{};
+  const snap=await captureSnapshot(pe.loc,pe.datetime);
   if(action==='biss'){
-    addEntry(makeEntry(snap,'biss',Object.assign({angler:name,depth,bite:1,notes},baitFields)));
+    addEntry(makeEntry(snap,'biss',Object.assign({angler:name,depth:dv??'',depthsource:dsrc,bite:1,notes},bf)));
     vibrate(25); toast('〰 Biss gespeichert',undoLast);
   } else {
-    const sp=panelSpecies==='Andere'?document.getElementById('pSpeciesCustom').value.trim():panelSpecies;
-    addEntry(makeEntry(snap,'fisch',Object.assign({angler:name,depth,species:sp,
-      fishlen:document.getElementById('pLen').value, fishweight:document.getElementById('pWeight').value,
-      bite:1,catch:1,notes},baitFields)));
+    const sp=modalSpecies==='Andere'?document.getElementById('mSpeciesCustom').value.trim():modalSpecies;
+    addEntry(makeEntry(snap,'fisch',Object.assign({angler:name,depth:dv??'',depthsource:dsrc,species:sp,
+      fishlen:document.getElementById('mLen').value,fishweight:document.getElementById('mWeight').value,
+      bite:1,catch:1,notes},bf)));
     vibrate([25,60,25]); toast('🐟 Fang gespeichert!',undoLast);
   }
-  document.getElementById('actionPanel').innerHTML=''; saveTripState(); renderTripView(); }
+  pendingEvent=null; closeModal(); saveTripState(); renderTripView(); }
 
-// ---------- Köderwechsel ----------
 function startBaitChange(){
   if(anglers.length===1){ pickBaitFor(anglers[0].name); return; }
-  const p=document.getElementById('actionPanel');
-  p.innerHTML=`<div class="card"><h2>Wer wechselt den Köder?</h2>
-    <div class="chips" id="bcAngler">${anglers.map(a=>`<div class="chip" data-val="${esc(a.name)}">${esc(a.name)}</div>`).join('')}</div>
-    <button class="btn" id="bcCancel" style="margin-top:12px;">Abbrechen</button></div>`;
+  openModal(`<h3>🔁 Wer wechselt den Köder?</h3><div class="card">
+    <div class="chips big" id="bcAngler">${anglers.map(a=>`<div class="chip" data-val="${esc(a.name)}">${esc(a.name)}</div>`).join('')}</div></div>
+    <button class="btn" id="bcCancel">Abbrechen</button>`);
   document.querySelectorAll('#bcAngler .chip').forEach(c=>c.addEventListener('click',()=>{
-    p.innerHTML=''; pickBaitFor(c.dataset.val); }));
-  document.getElementById('bcCancel').addEventListener('click',()=>{ p.innerHTML=''; }); }
+    closeModal(); pickBaitFor(c.dataset.val); }));
+  document.getElementById('bcCancel').addEventListener('click',()=>{ pendingEvent=null; closeModal(); }); }
 function pickBaitFor(name){
-  openBaitPicker('Neuer Köder für '+name, async b=>{
-    const ao=anglers.find(a=>a.name===name), old=ao.bait;
+  openBaitPicker('Neuer Köder für '+name,async b=>{
+    const ao=anglers.find(a=>a.name===name),old=ao.bait;
     const dur=Math.round((Date.now()-old.start)/60000);
-    const snap=await captureSnapshot();
+    const pe=pendingEvent||{};
+    const snap=await captureSnapshot(pe.loc,pe.datetime);
     addEntry(makeEntry(snap,'koederwechsel',{angler:name,baittype:old.type,baitcolor:old.color,
-      baitlength:old.length||'', baitweight:old.weight, baitdurationmin:dur,
+      baitlength:old.length||'',baitweight:old.weight,baitdurationmin:dur,
       notes:'neuer Köder: '+b.type+' '+baitLabel(b)}));
     ao.bait=Object.assign({},b,{start:Date.now()});
-    secondsLeft=300; saveTripState(); renderTripView(); vibrate(25);
+    pendingEvent=null; secondsLeft=300; saveTripState(); renderTripView(); vibrate(25);
     toast(`🔁 ${name}: ${baitLabel(b)} (${dur} min)`,undoLast); }); }
 
-// ---------- Ende ----------
-function renderEndConfirm(){
-  const p=document.getElementById('actionPanel');
-  p.innerHTML=`<div class="card"><h2>Trip wirklich beenden?</h2>
+function confirmEnd(){
+  openModal(`<h3>Trip beenden?</h3><div class="card">
+    <p style="margin:0;font-size:13.5px;color:var(--text-dim);font-weight:600;">Der Trip wird abgeschlossen und in der Trip-Übersicht zusammengefasst.</p></div>
     <div class="confirm-row"><button class="btn yes" id="eYes">Ja, beenden</button>
-    <button class="btn" id="eNo">Abbrechen</button></div></div>`;
-  document.getElementById('eNo').addEventListener('click',()=>{ p.innerHTML=''; });
+    <button class="btn" id="eNo">Abbrechen</button></div>`);
+  document.getElementById('eNo').addEventListener('click',closeModal);
   document.getElementById('eYes').addEventListener('click',endTrip); }
 async function endTrip(){
+  closeModal();
   const s=await captureSnapshot(); addEntry(makeEntry(s,'ende'));
-  const te=entries.filter(e=>e.tripId===trip.id), c=te.filter(e=>e.type==='fisch').length;
+  const te=entries.filter(e=>e.tripId===trip.id),c=te.filter(e=>e.type==='fisch').length;
   clearInterval(timerHandle); releaseWake();
-  trip=null; anglers=[]; technique=null; paused=false; secondsLeft=300;
-  document.getElementById('actionPanel').innerHTML='';
+  trip=null; anglers=[]; technique=null; paused=false; secondsLeft=300; currentDepth=null; depthSource='';
   await saveTripState();
   setupSelected=[]; setupBaits={}; setupTechnique=null;
   document.querySelectorAll('#s-techChips .chip').forEach(x=>x.classList.remove('sel'));
-  renderAnglerChips(); renderSetupBaits(); renderTripView();
+  renderAnglerChips(); renderSetupBaits(); renderTripView(); renderTripList();
   toast(`Trip beendet · ${te.length} Einträge · ${c} Fänge`); }
 
-// ---------- Logbuch ----------
+// ================= EINTRAG BEARBEITEN =================
+window.openEntryEditor=function(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  const isFish=e.type==='fisch',hasBait=!!e.baittype;
+  const anglerOpts=[...new Set([...ANGLER_PRESETS,...entries.map(x=>x.angler).filter(Boolean)])];
+  let sp=e.species||'';
+  openModal(`<h3>Eintrag bearbeiten</h3>
+    <div class="card">
+      <div class="kv"><span>Zeitpunkt</span><b>${fmtDT(e.datetime)}</b></div>
+      <div class="kv"><span>Typ</span><b>${TYPE_LABEL[e.type]||e.type}</b></div>
+      ${e.angler?`<div class="field" style="margin-top:10px;"><label>Angler</label>
+        <div class="chips" id="eAngler">${anglerOpts.map(n=>`<div class="chip ${e.angler===n?'sel':''}" data-val="${esc(n)}">${esc(n)}</div>`).join('')}</div></div>`:''}
+      ${isFish?`<div class="field" style="margin-top:10px;"><label>Fischart</label>
+        <div class="chips big" id="eSpecies">${SPECIES.map(s=>`<div class="chip ${sp===s?'sel':''}" data-val="${s}">${s}</div>`).join('')}</div>
+        <input type="text" id="eSpeciesCustom" placeholder="Art…" style="margin-top:8px;display:${sp&&!SPECIES.includes(sp)?'block':'none'};" value="${SPECIES.includes(sp)?'':esc(sp)}"></div>
+        <div class="row2"><div class="field"><label>Länge (cm)</label><input type="number" id="eLen" step="0.1" inputmode="decimal" value="${esc(e.fishlen)}"></div>
+        <div class="field"><label>Gewicht (kg)</label><input type="number" id="eWeight" step="0.01" inputmode="decimal" value="${esc(e.fishweight)}"></div></div>`:''}
+      <div class="field"><label>Wassertiefe (m)</label><input type="number" id="eDepth" step="0.5" inputmode="decimal" value="${esc(e.depth)}"></div>
+      ${hasBait?`<div class="field"><label>Köder (antippen zum Ändern)</label>
+        <div class="angler-mini" id="eBaitRow" style="margin:0;"><div class="swatch">🎣</div>
+        <div><div class="meta">${esc([e.baittype,e.baitcolor,e.baitlength,e.baitweight?fmtW(e.baitweight):''].filter(Boolean).join(' · '))}</div></div>
+        <span class="edit">ändern</span></div></div>`:''}
+      <div class="field"><label>Notiz</label><textarea id="eNotes">${esc(e.notes)}</textarea></div>
+    </div>
+    <div class="confirm-row"><button class="btn btn-brass" id="eSave">Speichern</button>
+      <button class="btn yes" id="eDel">Löschen</button>
+      <button class="btn" id="eCancel">Abbrechen</button></div>`);
+  const ang=document.getElementById('eAngler');
+  if(ang) ang.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+    ang.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); }));
+  const spEl=document.getElementById('eSpecies');
+  if(spEl) spEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+    spEl.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); sp=c.dataset.val;
+    document.getElementById('eSpeciesCustom').style.display=sp==='Andere'?'block':'none'; }));
+  const br=document.getElementById('eBaitRow');
+  if(br) br.addEventListener('click',()=>openBaitPicker('Köder korrigieren',b=>{
+    e.baittype=b.type; e.baitcolor=b.color; e.baitlength=b.length||''; e.baitweight=b.weight;
+    saveEntries(); refreshLists(); if(openTripId) renderTripDetail(openTripId);
+    closeModal(); toast('Köder korrigiert'); }));
+  document.getElementById('eCancel').addEventListener('click',closeModal);
+  document.getElementById('eDel').addEventListener('click',()=>{
+    entries=entries.filter(x=>x.id!==id); saveEntries(); refreshLists();
+    if(openTripId) renderTripDetail(openTripId); closeModal(); toast('Eintrag gelöscht'); });
+  document.getElementById('eSave').addEventListener('click',()=>{
+    if(ang){ const s=ang.querySelector('.chip.sel'); if(s) e.angler=s.dataset.val; }
+    if(isFish){ e.species=sp==='Andere'?document.getElementById('eSpeciesCustom').value.trim():(sp||e.species);
+      e.fishlen=document.getElementById('eLen').value; e.fishweight=document.getElementById('eWeight').value; }
+    const nd=document.getElementById('eDepth').value;
+    if(nd!==String(e.depth)){ e.depth=nd; e.depthsource=nd?'manuell':''; }
+    e.notes=document.getElementById('eNotes').value;
+    saveEntries(); refreshLists(); if(openTripId) renderTripDetail(openTripId);
+    closeModal(); toast('Eintrag aktualisiert'); }); };
+
+// ================= LISTEN =================
 const TYPE_LABEL={start:'Start',auto:'Auto',biss:'Biss',fisch:'Fang',koederwechsel:'Köderwechsel',
   technikwechsel:'Technik',pause:'Pause',fortsetzung:'Weiter',ende:'Ende'};
 function baitCell(e){
   if(!e.baittype) return '';
-  const parts=[e.baittype]; if(e.baitcolor) parts.push(e.baitcolor);
-  if(e.baitlength) parts.push(e.baitlength); if(e.baitweight) parts.push(fmtW(e.baitweight));
-  return `<div>Köder: <b>${esc(parts.join(' · '))}</b></div>`; }
-function renderLog(){
-  const l=document.getElementById('logList');
-  let list=entries;
-  if(logFilter==='fisch') list=entries.filter(e=>e.type==='fisch');
-  else if(logFilter==='events') list=entries.filter(e=>e.type==='fisch'||e.type==='biss');
-  if(list.length===0){ l.innerHTML='<div class="empty">Keine passenden Einträge.</div>'; return; }
-  l.innerHTML=list.slice(0,300).map(e=>{
-    if(e.type==='fisch'){
-      const size=[e.fishlen?e.fishlen+' cm':'', e.fishweight?e.fishweight+' kg':''].filter(Boolean).join(' · ');
-      return `<div class="entry t-fisch">
-        <div class="entry-top"><span class="entry-time">${fmtDT(e.datetime)}</span>
-          <span class="entry-type">Fang</span>
-          ${e.angler?`<span class="entry-angler">${esc(e.angler)}</span>`:''}
-          <span class="entry-del" onclick="deleteEntry('${e.id}')">Löschen</span></div>
-        <div class="fish-head">${fishIcon(e.species)}
-          <div><div class="sp">${esc(e.species)||'Fisch'}</div>
-          ${size?`<div class="sz">${esc(size)}</div>`:''}</div></div>
-        <div class="entry-grid">${baitCell(e)}
-          ${e.depth?`<div>Tiefe: <b>${e.depth} m</b></div>`:''}
-          ${e.technique?`<div>Technik: <b>${esc(e.technique)}</b></div>`:''}
-          ${e.watertemp!==''&&e.watertemp!=null?`<div>Wasser: <b>${e.watertemp}°C</b></div>`:''}
-          ${e.pressure!==''&&e.pressure!=null?`<div>Druck: <b>${e.pressure} hPa</b></div>`:''}
-          ${e.wind!==''&&e.wind!=null?`<div>Wind: <b>${e.wind} km/h ${e.winddir||''}</b></div>`:''}</div>
-        ${e.notes?`<div class="entry-note">${esc(e.notes)}</div>`:''}</div>`;
-    }
-    return `<div class="entry t-${e.type}">
+  const p=[e.baittype]; if(e.baitcolor) p.push(e.baitcolor);
+  if(e.baitlength) p.push(e.baitlength); if(e.baitweight) p.push(fmtW(e.baitweight));
+  return `<div>Köder: <b>${esc(p.join(' · '))}</b></div>`; }
+function depthCell(e){
+  if(e.depth===''||e.depth==null) return '';
+  const tag=e.depthsource==='karte'?' (Karte)':e.depthsource==='mitgefuehrt'?' (mitgef.)':'';
+  return `<div>Tiefe: <b>${fmtD(e.depth)} m${tag}</b></div>`; }
+function entryHtml(e){
+  if(e.type==='fisch'){
+    const size=[e.fishlen?e.fishlen+' cm':'',e.fishweight?e.fishweight+' kg':''].filter(Boolean).join(' · ');
+    const spTxt=e.species?esc(e.species):'⚠ Art fehlt – antippen';
+    return `<div class="entry t-fisch" onclick="openEntryEditor('${e.id}')">
       <div class="entry-top"><span class="entry-time">${fmtDT(e.datetime)}</span>
-        <span class="entry-type">${TYPE_LABEL[e.type]||e.type}</span>
+        <span class="entry-type">Fang</span>
         ${e.angler?`<span class="entry-angler">${esc(e.angler)}</span>`:''}
-        <span class="entry-del" onclick="deleteEntry('${e.id}')">Löschen</span></div>
-      <div class="entry-grid">
+        <span class="entry-edit">bearbeiten</span></div>
+      <div class="fish-head">${fishIcon(e.species)}
+        <div><div class="sp ${e.species?'':'missing'}">${spTxt}</div>
+        ${size?`<div class="sz">${esc(size)}</div>`:''}</div></div>
+      <div class="entry-grid">${baitCell(e)}${depthCell(e)}
         ${e.technique?`<div>Technik: <b>${esc(e.technique)}</b></div>`:''}
-        ${e.pressure!==''&&e.pressure!=null?`<div>Druck: <b>${e.pressure} hPa</b></div>`:''}
-        ${e.airtemp!==''&&e.airtemp!=null?`<div>Luft: <b>${e.airtemp}°C</b></div>`:''}
-        ${e.wind!==''&&e.wind!=null?`<div>Wind: <b>${e.wind} km/h ${e.winddir||''}</b></div>`:''}
         ${e.watertemp!==''&&e.watertemp!=null?`<div>Wasser: <b>${e.watertemp}°C</b></div>`:''}
-        ${e.depth?`<div>Tiefe: <b>${e.depth} m</b></div>`:''}
-        ${baitCell(e)}
-        ${e.baitdurationmin!==''?`<div>Genutzt: <b>${e.baitdurationmin} min</b></div>`:''}
-        ${e.techdurationmin!==''?`<div>Technik: <b>${e.techdurationmin} min</b></div>`:''}</div>
-      ${e.notes?`<div class="entry-note">${esc(e.notes)}</div>`:''}</div>`; }).join(''); }
+        ${e.pressure!==''&&e.pressure!=null?`<div>Druck: <b>${e.pressure} hPa</b></div>`:''}
+        ${e.wind!==''&&e.wind!=null?`<div>Wind: <b>${e.wind} km/h ${e.winddir||''}</b></div>`:''}</div>
+      ${e.notes?`<div class="entry-note">${esc(e.notes)}</div>`:''}</div>`; }
+  return `<div class="entry t-${e.type}" onclick="openEntryEditor('${e.id}')">
+    <div class="entry-top"><span class="entry-time">${fmtDT(e.datetime)}</span>
+      <span class="entry-type">${TYPE_LABEL[e.type]||e.type}</span>
+      ${e.angler?`<span class="entry-angler">${esc(e.angler)}</span>`:''}
+      <span class="entry-edit">bearbeiten</span></div>
+    <div class="entry-grid">
+      ${e.technique?`<div>Technik: <b>${esc(e.technique)}</b></div>`:''}
+      ${depthCell(e)}
+      ${e.pressure!==''&&e.pressure!=null?`<div>Druck: <b>${e.pressure} hPa</b></div>`:''}
+      ${e.airtemp!==''&&e.airtemp!=null?`<div>Luft: <b>${e.airtemp}°C</b></div>`:''}
+      ${e.wind!==''&&e.wind!=null?`<div>Wind: <b>${e.wind} km/h ${e.winddir||''}</b></div>`:''}
+      ${e.watertemp!==''&&e.watertemp!=null?`<div>Wasser: <b>${e.watertemp}°C</b></div>`:''}
+      ${baitCell(e)}
+      ${e.baitdurationmin!==''?`<div>Genutzt: <b>${e.baitdurationmin} min</b></div>`:''}
+      ${e.techdurationmin!==''?`<div>Vorher: <b>${e.techdurationmin} min</b></div>`:''}</div>
+    ${e.notes?`<div class="entry-note">${esc(e.notes)}</div>`:''}</div>`; }
+function renderRecent(){
+  const el=document.getElementById('recentList'); if(!el||!trip) return;
+  const list=entries.filter(e=>e.tripId===trip.id&&e.type!=='auto').slice(0,6);
+  el.innerHTML=list.length?list.map(entryHtml).join('')
+    :'<div class="empty" style="padding:16px 0;">Noch keine Ereignisse.</div>'; }
 
-window.deleteEntry=async id=>{ entries=entries.filter(e=>e.id!==id); await saveEntries(); renderLog(); renderStats(); };
-document.getElementById('clearBtn').addEventListener('click',()=>{ if(entries.length===0) return;
-  document.getElementById('clearConfirm').style.display='flex'; });
-document.getElementById('clearNo').addEventListener('click',()=>{ document.getElementById('clearConfirm').style.display='none'; });
-document.getElementById('clearYes').addEventListener('click',async()=>{ entries=[]; await saveEntries(); renderLog(); renderStats();
-  document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht'); });
+// ---------- Trips ----------
+function getTrips(){
+  const m={};
+  entries.forEach(e=>{ if(!e.tripId) return; (m[e.tripId]=m[e.tripId]||[]).push(e); });
+  return Object.entries(m).map(([id,list])=>{
+    const s=[...list].sort((a,b)=>a.datetime.localeCompare(b.datetime));
+    return {id,entries:s,start:s[0].datetime,end:s[s.length-1].datetime,live:trip&&trip.id===id}; })
+    .sort((a,b)=>b.start.localeCompare(a.start)); }
+function tripStats(t){
+  const fish=t.entries.filter(e=>e.type==='fisch');
+  const bites=t.entries.filter(e=>e.type==='biss'||e.type==='fisch');
+  const counts={}; fish.forEach(e=>{ const k=e.species||'Unbekannt'; counts[k]=(counts[k]||0)+1; });
+  const pts=t.entries.filter(e=>num(e.lat)!=null&&num(e.lon)!=null)
+    .map(e=>({lat:num(e.lat),lon:num(e.lon),type:e.type,species:e.species,angler:e.angler,dt:e.datetime,depth:num(e.depth)}))
+    .sort((a,b)=>a.dt.localeCompare(b.dt));
+  let dist=0; for(let i=1;i<pts.length;i++) dist+=haversine(pts[i-1],pts[i]);
+  const durMin=Math.max(1,Math.round((new Date(t.end)-new Date(t.start))/60000));
+  const avg=k=>{ const v=t.entries.map(e=>num(e[k])).filter(x=>x!=null);
+    return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null; };
+  const pv=t.entries.map(e=>num(e.pressure)).filter(x=>x!=null);
+  const dv=t.entries.map(e=>num(e.depth)).filter(x=>x!=null);
+  const fdv=fish.map(e=>num(e.depth)).filter(x=>x!=null);
+  const bc={}; fish.forEach(e=>{ const k=[e.baittype,e.baitcolor].filter(Boolean).join(' · '); if(k) bc[k]=(bc[k]||0)+1; });
+  const ac={}; fish.forEach(e=>{ if(e.angler) ac[e.angler]=(ac[e.angler]||0)+1; });
+  return { fish,bites,counts,pts,dist,durMin,anglerCounts:ac,
+    avgWater:avg('watertemp'),avgAir:avg('airtemp'),avgWind:avg('wind'),
+    depthMin:dv.length?Math.min(...dv):null,depthMax:dv.length?Math.max(...dv):null,
+    avgFishDepth:fdv.length?Math.round(fdv.reduce((a,b)=>a+b,0)/fdv.length*10)/10:null,
+    depthPts:dv.length,
+    pressMin:pv.length?Math.min(...pv):null,pressMax:pv.length?Math.max(...pv):null,
+    topBait:Object.entries(bc).sort((a,b)=>b[1]-a[1])[0],
+    techs:[...new Set(t.entries.map(e=>e.technique).filter(Boolean))],
+    perHour:Math.round(fish.length/(durMin/60)*10)/10 }; }
+
+function renderTripList(){
+  const el=document.getElementById('tripList'); if(!el) return;
+  document.getElementById('tripListView').style.display=openTripId?'none':'block';
+  document.getElementById('tripDetailView').style.display=openTripId?'block':'none';
+  if(openTripId){ renderTripDetail(openTripId); return; }
+  const trips=getTrips();
+  if(trips.length===0){ el.innerHTML='<div class="empty">Noch keine Trips aufgezeichnet.</div>'; return; }
+  el.innerHTML=trips.map(t=>{
+    const st=tripStats(t);
+    const badges=Object.entries(st.counts).sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>`<span class="badge">${fishIcon(k,26)}${v}</span>`).join('');
+    return `<div class="trip-card ${t.live?'live':''}" onclick="openTrip('${t.id}')">
+      <div class="trip-date">${fmtDate(t.start)}</div>
+      <div class="trip-time">${fmtHM(t.start)}–${t.live?'läuft':fmtHM(t.end)} · ${Math.floor(st.durMin/60)}h ${st.durMin%60}min</div>
+      <div class="trip-badges">${t.live?'<span class="badge live">● LIVE</span>':''}
+        ${badges||'<span class="badge plain">keine Fänge</span>'}
+        <span class="badge plain">〰 ${st.bites.length}</span>
+        ${st.dist>0?`<span class="badge plain">${(st.dist/1000).toFixed(1)} km</span>`:''}
+        ${st.depthMin!=null?`<span class="badge plain">${fmtD(st.depthMin)}–${fmtD(st.depthMax)} m</span>`:''}</div></div>`; }).join(''); }
+window.openTrip=function(id){ openTripId=id; renderTripList(); window.scrollTo(0,0); };
+window.closeTrip=function(){ openTripId=null; if(mapObj){ try{ mapObj.remove(); }catch(e){} mapObj=null; }
+  renderTripList(); window.scrollTo(0,0); };
+window.toggleDepthLayer=function(){ showDepthLayer=!showDepthLayer; if(openTripId) renderTripDetail(openTripId); };
+
+// ---------- Karte ----------
+let leafletPromise=null,mapObj=null;
+function loadLeaflet(){
+  if(window.L) return Promise.resolve();
+  if(leafletPromise) return leafletPromise;
+  leafletPromise=new Promise((res,rej)=>{
+    const css=document.createElement('link'); css.rel='stylesheet';
+    css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(css);
+    const s=document.createElement('script'); s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload=()=>res(); s.onerror=()=>rej(new Error('Leaflet nicht ladbar')); document.head.appendChild(s);
+    setTimeout(()=>rej(new Error('Zeitüberschreitung')),9000); });
+  return leafletPromise; }
+function routeSvg(pts){
+  if(pts.length<2) return '<div class="empty" style="padding:26px 0;">Zu wenige GPS-Punkte für eine Route.</div>';
+  const lats=pts.map(p=>p.lat),lons=pts.map(p=>p.lon);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  const kx=Math.cos((minLat+maxLat)/2*Math.PI/180);
+  const W=320,H=230,P=22;
+  const spanX=Math.max((maxLon-minLon)*kx,1e-6),spanY=Math.max(maxLat-minLat,1e-6);
+  const sc=Math.min((W-2*P)/spanX,(H-2*P)/spanY);
+  const offX=(W-spanX*sc)/2,offY=(H-spanY*sc)/2;
+  const X=p=>offX+(p.lon-minLon)*kx*sc,Y=p=>offY+(maxLat-p.lat)*sc;
+  const path=pts.map((p,i)=>(i?'L':'M')+X(p).toFixed(1)+' '+Y(p).toFixed(1)).join(' ');
+  const marks=pts.filter(p=>p.type==='fisch'||p.type==='biss').map(p=>
+    p.type==='fisch'?`<circle cx="${X(p).toFixed(1)}" cy="${Y(p).toFixed(1)}" r="7" fill="#8A5A0E" stroke="#fff" stroke-width="2.5"/>`
+      :`<circle cx="${X(p).toFixed(1)}" cy="${Y(p).toFixed(1)}" r="4.5" fill="#1E5C3E" stroke="#fff" stroke-width="2"/>`).join('');
+  const pxPerM=sc/111320;
+  const steps=[25,50,100,200,500,1000,2000,5000,10000];
+  let barM=steps.find(m=>m*pxPerM<=110)||steps[0];
+  const barPx=Math.max(24,Math.min(110,barM*pxPerM));
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
+    <rect width="${W}" height="${H}" fill="#EAF1F6"/>
+    <path d="${path}" fill="none" stroke="#2A5F8F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="${X(pts[0]).toFixed(1)}" cy="${Y(pts[0]).toFixed(1)}" r="5" fill="#fff" stroke="#2A5F8F" stroke-width="3"/>
+    ${marks}
+    <g transform="translate(12,${H-14})">
+      <line x1="0" y1="0" x2="${barPx.toFixed(0)}" y2="0" stroke="#14201C" stroke-width="2.5"/>
+      <line x1="0" y1="-4" x2="0" y2="4" stroke="#14201C" stroke-width="2.5"/>
+      <line x1="${barPx.toFixed(0)}" y1="-4" x2="${barPx.toFixed(0)}" y2="4" stroke="#14201C" stroke-width="2.5"/>
+      <text x="${(barPx/2).toFixed(0)}" y="-7" font-size="11" font-weight="700" text-anchor="middle" fill="#14201C"
+        font-family="monospace">${barM>=1000?(barM/1000)+' km':barM+' m'}</text></g></svg>`; }
+async function renderRealMap(pts){
+  const box=document.getElementById('mapBox'); if(!box||pts.length===0) return;
+  try{
+    await loadLeaflet();
+    box.innerHTML='<div id="leafMap"></div>';
+    if(mapObj){ try{ mapObj.remove(); }catch(e){} }
+    mapObj=L.map('leafMap',{scrollWheelZoom:false});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,attribution:'© OpenStreetMap-Mitwirkende'}).addTo(mapObj);
+    const ll=pts.map(p=>[p.lat,p.lon]);
+    if(showDepthLayer){
+      depthPoints().slice(0,800).forEach(p=>
+        L.circleMarker([p.lat,p.lon],{radius:5,stroke:false,fillColor:depthColor(p.depth),fillOpacity:0.85})
+          .addTo(mapObj).bindPopup(`${fmtD(p.depth)} m<br>${fmtDT(p.dt)}`)); }
+    L.polyline(ll,{color:'#2A5F8F',weight:4,opacity:0.9}).addTo(mapObj);
+    if(ll.length>1) mapObj.fitBounds(L.latLngBounds(ll),{padding:[26,26]}); else mapObj.setView(ll[0],15);
+    L.circleMarker(ll[0],{radius:6,color:'#2A5F8F',weight:3,fillColor:'#fff',fillOpacity:1})
+      .addTo(mapObj).bindPopup('Start '+fmtHM(pts[0].dt));
+    pts.filter(p=>p.type==='biss').forEach(p=>
+      L.circleMarker([p.lat,p.lon],{radius:6,color:'#fff',weight:2,fillColor:'#1E5C3E',fillOpacity:1})
+        .addTo(mapObj).bindPopup(`Biss ${fmtHM(p.dt)}${p.angler?' · '+p.angler:''}${p.depth!=null?'<br>'+fmtD(p.depth)+' m':''}`));
+    pts.filter(p=>p.type==='fisch').forEach(p=>
+      L.circleMarker([p.lat,p.lon],{radius:10,color:'#fff',weight:3,fillColor:'#8A5A0E',fillOpacity:1})
+        .addTo(mapObj).bindPopup(`<b>${p.species||'Fisch'}</b><br>${fmtHM(p.dt)}${p.angler?' · '+p.angler:''}${p.depth!=null?'<br>'+fmtD(p.depth)+' m':''}`));
+    setTimeout(()=>mapObj.invalidateSize(),120);
+  }catch(e){
+    const n=document.getElementById('mapNote');
+    if(n) n.insertAdjacentHTML('beforeend','<span>Karte offline – Streckenzeichnung</span>'); } }
+
+function renderTripDetail(id){
+  const t=getTrips().find(x=>x.id===id);
+  const el=document.getElementById('tripDetailView');
+  if(!t){ el.innerHTML='<div class="empty">Trip nicht gefunden.</div>'; return; }
+  const st=tripStats(t);
+  const speciesRows=Object.entries(st.counts).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`<div class="sp-row">${fishIcon(k,44)}<span>${esc(k)}</span><b>${v}×</b></div>`).join('')
+    ||'<div class="empty" style="padding:14px 0;">Keine Fänge</div>';
+  const anglerRows=Object.entries(st.anglerCounts).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`<div class="kv"><span>${esc(k)}</span><b>${v} Fänge</b></div>`).join('')||'';
+  el.innerHTML=`
+    <button class="btn" onclick="closeTrip()" style="margin-bottom:14px;">← Alle Trips</button>
+    <div class="card">
+      <h2>${fmtDate(t.start)} · ${fmtHM(t.start)}–${t.live?'läuft':fmtHM(t.end)}</h2>
+      <div class="stats-grid" style="margin-bottom:0;">
+        <div class="stat"><div class="n">${st.fish.length}</div><div class="l">Fänge</div></div>
+        <div class="stat"><div class="n">${st.bites.length}</div><div class="l">Bisse</div></div>
+        <div class="stat"><div class="n">${Math.floor(st.durMin/60)}:${pad(st.durMin%60)}</div><div class="l">Dauer h:min</div></div>
+        <div class="stat"><div class="n">${st.avgFishDepth!=null?fmtD(st.avgFishDepth):'–'}</div><div class="l">Ø Fangtiefe m</div></div>
+      </div></div>
+    <div class="card"><h2>Route</h2>
+      <div class="map-box" id="mapBox">${routeSvg(st.pts)}</div>
+      <div id="mapNote" style="display:flex;gap:14px;margin-top:10px;font-size:11.5px;font-family:var(--font-mono);font-weight:700;color:var(--text-dim);flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#8A5A0E;margin-right:5px;"></span>Fang</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#1E5C3E;margin-right:5px;"></span>Biss</span>
+        <span>Strecke: ${(st.dist/1000).toFixed(2)} km</span></div>
+      <button class="btn" onclick="toggleDepthLayer()" style="margin-top:10px;">
+        ${showDepthLayer?'✓ Tiefenkarte eingeblendet':'🌊 Tiefenkarte einblenden'}</button>
+      ${showDepthLayer?`<div class="legend">
+        <span style="background:#8FD3EF;color:#14201C;">&lt;2 m</span><span style="background:#57B0DC;">2–4</span>
+        <span style="background:#2E86C1;">4–6</span><span style="background:#1F618D;">6–8</span>
+        <span style="background:#154360;">8–12</span><span style="background:#0B2A3F;">&gt;12 m</span></div>`:''}
+    </div>
+    <div class="card"><h2>Fänge nach Art</h2>${speciesRows}</div>
+    <div class="card"><h2>Kennzahlen</h2>
+      <div class="kv"><span>Verwertung (Fang/Biss)</span><b>${st.bites.length?Math.round(st.fish.length/st.bites.length*100):0}%</b></div>
+      <div class="kv"><span>Fänge pro Stunde</span><b>${st.perHour}</b></div>
+      <div class="kv"><span>Bester Köder</span><b>${st.topBait?esc(st.topBait[0])+' ('+st.topBait[1]+')':'–'}</b></div>
+      <div class="kv"><span>Technik</span><b>${st.techs.join(', ')||'–'}</b></div>
+      ${anglerRows}
+      <div class="kv"><span>Befischte Tiefen</span><b>${st.depthMin!=null?fmtD(st.depthMin)+'–'+fmtD(st.depthMax)+' m':'–'}</b></div>
+      <div class="kv"><span>Ø Fangtiefe</span><b>${st.avgFishDepth!=null?fmtD(st.avgFishDepth)+' m':'–'}</b></div>
+      <div class="kv"><span>Tiefenmesspunkte</span><b>${st.depthPts}</b></div>
+      <div class="kv"><span>Ø Wassertemperatur</span><b>${st.avgWater!=null?st.avgWater+' °C':'–'}</b></div>
+      <div class="kv"><span>Ø Lufttemperatur</span><b>${st.avgAir!=null?st.avgAir+' °C':'–'}</b></div>
+      <div class="kv"><span>Ø Wind</span><b>${st.avgWind!=null?st.avgWind+' km/h':'–'}</b></div>
+      <div class="kv"><span>Luftdruck (Meereshöhe)</span><b>${st.pressMin!=null?st.pressMin+'–'+st.pressMax+' hPa':'–'}</b></div></div>
+    <div class="card"><h2>Ereignisse</h2>
+      ${t.entries.filter(e=>e.type!=='auto').sort((a,b)=>b.datetime.localeCompare(a.datetime)).map(entryHtml).join('')
+        ||'<div class="empty" style="padding:14px 0;">Keine Ereignisse</div>'}</div>`;
+  renderRealMap(st.pts); }
 
 // ---------- CSV ----------
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('csvInput').click());
+document.getElementById('csvInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ importCsv(rd.result); e.target.value=''; };
+  rd.readAsText(f,'utf-8'); });
+function splitCsvLine(line){
+  const out=[]; let cur='',q=false;
+  for(let i=0;i<line.length;i++){ const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===';'){ out.push(cur); cur=''; }
+    else cur+=ch; }
+  out.push(cur); return out; }
+function importCsv(text){
+  try{
+    const clean=text.replace(/^\uFEFF/,'').replace(/\r/g,'');
+    const lines=clean.split('\n').filter(l=>l.trim());
+    if(lines.length<2){ toast('CSV enthält keine Daten'); return; }
+    const head=splitCsvLine(lines[0]).map(h=>h.trim());
+    if(!head.includes('datetime')||!head.includes('type')){ toast('Kein gültiges Angel-Logbuch-CSV'); return; }
+    const existing=new Set(entries.map(e=>[e.datetime,e.type,e.tripId,e.angler,e.species,e.baitcolor].join('|')));
+    let added=0,dupes=0,skipped=0; const newOnes=[];
+    for(let i=1;i<lines.length;i++){
+      const cells=splitCsvLine(lines[i]);
+      if(cells.length<2){ skipped++; continue; }
+      const row={}; head.forEach((h,j)=>{ row[h]=(cells[j]??'').trim(); });
+      if(!row.datetime||!row.type){ skipped++; continue; }
+      const key=[row.datetime,row.type,row.tripId||'',row.angler||'',row.species||'',row.baitcolor||''].join('|');
+      if(existing.has(key)){ dupes++; continue; }
+      existing.add(key);
+      const rec={id:uid()}; CSV_COLS.forEach(c=>{ rec[c]=row[c]??''; });
+      if(!rec.tripId) rec.tripId='import'+row.datetime.slice(0,10).replace(/-/g,'');
+      if(rec.depth&&!rec.depthsource) rec.depthsource='import';
+      rec.bite=Number(rec.bite)||0; rec.catch=Number(rec.catch)||0;
+      newOnes.push(rec); added++; }
+    if(added===0){ toast(`Nichts importiert – ${dupes} Duplikate`); return; }
+    entries=[...newOnes,...entries].sort((a,b)=>b.datetime.localeCompare(a.datetime));
+    saveEntries(); refreshLists();
+    const tripCount=new Set(newOnes.map(r=>r.tripId)).size;
+    const noSp=newOnes.filter(r=>r.type==='fisch'&&!r.species).length;
+    toast(`✓ ${added} Einträge, ${tripCount} Trip(s) importiert${dupes?` · ${dupes} Duplikate`:''}`);
+    if(noSp) setTimeout(()=>toast(`⚠ ${noSp} Fang/Fänge ohne Fischart – bitte nachtragen`),2800);
+  }catch(err){ toast('Import fehlgeschlagen: '+err.message); } }
 document.getElementById('exportBtn').addEventListener('click',()=>{
   if(entries.length===0){ toast('Keine Daten'); return; }
-  const cols=['datetime','type','tripId','angler','technique','lat','lon','pressure','airtemp','wind','winddir','rain',
-    'watertemp','depth','baittype','baitcolor','baitlength','baitweight','baitdurationmin','techdurationmin',
-    'bite','catch','species','fishlen','fishweight','notes'];
-  const rows=entries.map(e=>cols.map(c=>(e[c]??'').toString().replace(/;/g,',').replace(/\n/g,' ')).join(';'));
-  const blob=new Blob(['\uFEFF'+[cols.join(';'),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
-  const u=URL.createObjectURL(blob), a=document.createElement('a');
+  const rows=entries.map(e=>CSV_COLS.map(c=>(e[c]??'').toString().replace(/;/g,',').replace(/\n/g,' ')).join(';'));
+  const blob=new Blob(['\uFEFF'+[CSV_COLS.join(';'),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const u=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=u; a.download='angel-logbuch_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
   toast('CSV exportiert'); });
+document.getElementById('clearBtn').addEventListener('click',()=>{ if(entries.length===0) return;
+  document.getElementById('clearConfirm').style.display='flex'; });
+document.getElementById('clearNo').addEventListener('click',()=>{ document.getElementById('clearConfirm').style.display='none'; });
+document.getElementById('clearYes').addEventListener('click',async()=>{ entries=[]; await saveEntries();
+  refreshLists(); document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht'); });
 
 // ---------- Statistik ----------
 function listBlock(id,arr,suf){
-  const el=document.getElementById(id);
-  el.outerHTML = arr.length
-    ? `<div id="${id}">`+arr.map(([k,v])=>`<div class="entry-grid" style="margin-bottom:5px;"><div>${esc(k)}</div><b>${v}${suf}</b></div>`).join('')+'</div>'
+  const el=document.getElementById(id); if(!el) return;
+  el.outerHTML=arr.length
+    ? `<div id="${id}">`+arr.map(([k,v])=>`<div class="kv"><span>${esc(k)}</span><b>${v}${suf}</b></div>`).join('')+'</div>'
     : `<div id="${id}" class="empty" style="padding:18px 0;">Noch keine Daten</div>`; }
 function speciesBlock(arr){
-  const el=document.getElementById('topSpecies');
-  el.outerHTML = arr.length
-    ? `<div id="topSpecies">`+arr.map(([k,v])=>`<div class="sp-row">${fishIcon(k,40)}<span>${esc(k)}</span><b>${v}×</b></div>`).join('')+'</div>'
+  const el=document.getElementById('topSpecies'); if(!el) return;
+  el.outerHTML=arr.length
+    ? `<div id="topSpecies">`+arr.map(([k,v])=>`<div class="sp-row">${fishIcon(k,44)}<span>${esc(k)}</span><b>${v}×</b></div>`).join('')+'</div>'
     : `<div id="topSpecies" class="empty" style="padding:18px 0;">Noch keine Daten</div>`; }
+function depthBucket(d){ return d<2?'0–2 m':d<4?'2–4 m':d<6?'4–6 m':d<8?'6–8 m':d<12?'8–12 m':'über 12 m'; }
 function renderStats(){
-  document.getElementById('statTotal').textContent=entries.length;
-  const c=entries.filter(e=>e.type==='fisch'), b=entries.filter(e=>e.type==='biss'||e.type==='fisch');
+  const c=entries.filter(e=>e.type==='fisch'),b=entries.filter(e=>e.type==='biss'||e.type==='fisch');
+  document.getElementById('statTrips').textContent=getTrips().length;
   document.getElementById('statCatches').textContent=c.length;
   document.getElementById('statBites').textContent=b.length;
   document.getElementById('statRate').textContent=b.length?Math.round(c.length/b.length*100)+'%':'0%';
+  const dp=depthPoints();
+  const ds=document.getElementById('depthStats');
+  if(ds){ if(dp.length){ const dd=dp.map(p=>p.depth);
+      ds.innerHTML=`<div>Messpunkte: <span class="ok">${dp.length}</span></div>
+        <div>Tiefenbereich: ${fmtD(Math.min(...dd))} – ${fmtD(Math.max(...dd))} m</div>
+        <div>Ø Tiefe: ${fmtD(Math.round(dd.reduce((a,x)=>a+x,0)/dd.length*10)/10)} m</div>
+        <div style="margin-top:6px;">Die Karte wächst mit jedem Eintrag. Ab etwa 200 Punkten liefert sie brauchbare Vorschläge.</div>`; }
+    else ds.innerHTML='<div>Noch keine Tiefenmessungen. Setze im Trip die Wassertiefe – jeder Punkt landet in der Karte.</div>'; }
   const cnt=k=>{ const m={}; c.forEach(e=>{ if(e[k]) m[e[k]]=(m[e[k]]||0)+1; }); return Object.entries(m).sort((x,y)=>y[1]-x[1]); };
   speciesBlock(cnt('species'));
+  const db={}; c.forEach(e=>{ const d=num(e.depth); if(d!=null){ const k=depthBucket(d); db[k]=(db[k]||0)+1; } });
+  listBlock('topDepths',Object.entries(db).sort((a,b)=>b[1]-a[1]),' Fänge');
   listBlock('topBaits',cnt('baitcolor').length?cnt('baitcolor'):cnt('baittype'),' Fänge');
   listBlock('topLengths',cnt('baitlength'),' Fänge');
   listBlock('topAnglers',cnt('angler'),' Fänge'); }
