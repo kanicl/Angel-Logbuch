@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Angel-Log">
+<meta name="theme-color" content="#0F201D">
+<title>Angel-Logbuch</title>
+<style>
+  :root{
+    --bg: #0F201D; --bg-deep: #0A1614; --surface: #17302B; --surface-2: #1E3A33; --line: #2E4F46;
+    --text: #EDE6D6; --text-dim: #A9BDB4; --brass: #C68B3C; --brass-bright: #E0A855;
+    --sage: #6FA287; --rust: #C1502E;
+    --font-display: 'Special Elite', 'Courier New', monospace;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body{ margin:0; background: radial-gradient(ellipse 800px 400px at 50% -10%, rgba(198,139,60,0.08), transparent), var(--bg);
+    color: var(--text); font-family: var(--font-body); min-height: 100vh; padding-bottom: 40px;
+    padding-top: env(safe-area-inset-top); }
+  header{ padding: 26px 20px 18px; position: relative; }
+  header::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
+    background: repeating-linear-gradient(90deg, var(--brass) 0 8px, transparent 8px 16px); opacity:0.35; }
+  .eyebrow{ font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); margin: 0 0 6px; }
+  h1{ font-family: var(--font-display); font-weight: 400; font-size: 28px; margin: 0 0 4px; }
+  .sub{ font-size: 13px; color: var(--text-dim); margin:0; }
+  .tabs{ display:flex; gap: 2px; margin: 16px 20px 0; background: var(--bg-deep); padding: 3px; border-radius: 6px; border: 1px solid var(--line); }
+  .tab{ flex:1; text-align:center; padding: 9px 4px; font-family: var(--font-mono); font-size: 12px; letter-spacing:0.04em; text-transform: uppercase; color: var(--text-dim); border-radius: 4px; cursor:pointer; user-select:none; }
+  .tab.active{ background: var(--surface-2); color: var(--brass-bright); }
+  main{ padding: 18px 20px 0; }
+  section{ display:none; } section.active{ display:block; }
+  .card{ background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+  .card h2{ font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--sage); margin: 0 0 12px; display:flex; align-items:center; gap:8px; }
+  .card h2::after{ content:""; flex:1; height:1px; background: var(--line); }
+  .field{ margin-bottom: 12px; } .field:last-child{ margin-bottom:0; }
+  .field label{ display:block; font-size: 12px; color: var(--text-dim); margin-bottom: 5px; }
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  input[type=text], input[type=number], select, textarea{
+    width:100%; background: var(--bg-deep); border: 1px solid var(--line); color: var(--text);
+    font-family: var(--font-mono); font-size: 16px; padding: 10px 11px; border-radius: 5px; outline: none; }
+  input:focus, select:focus, textarea:focus{ border-color: var(--brass); }
+  textarea{ font-family: var(--font-body); resize: vertical; min-height: 44px; }
+  .chips{ display:flex; flex-wrap:wrap; gap: 7px; }
+  .chip{ padding: 9px 14px; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 20px; font-size: 13px; cursor:pointer; user-select:none; color: var(--text-dim); }
+  .chip.sel{ background: rgba(198,139,60,0.15); border-color: var(--brass); color: var(--brass-bright); }
+  .btn{ width:100%; padding: 13px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg-deep); color: var(--text);
+    font-family: var(--font-mono); font-size: 13px; letter-spacing:0.03em; cursor:pointer; }
+  .btn-brass{ background: var(--brass); border-color: var(--brass); color: #1A1206; font-weight:700; }
+  .btn-ghost{ background: transparent; }
+  .btn-row{ display:flex; gap:8px; align-items:center; }
+  .btn-row input{ flex:1; }
+  .btn-row .btn{ width:auto; padding: 10px 14px; white-space:nowrap; }
+  .btn[disabled]{ opacity:0.5; }
+  .diag{ font-family: var(--font-mono); font-size: 11.5px; line-height:1.7; color: var(--text-dim); }
+  .diag .ok{ color: var(--sage); } .diag .err{ color: var(--rust); } .diag .warn{ color: var(--brass-bright); }
+  #timerBar{ background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--sage); border-radius: 4px;
+    padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; font-family: var(--font-mono); font-size: 13px; margin-bottom:14px; }
+  #timerBar.due{ border-left-color: var(--rust); } #timerBar.paused{ border-left-color: var(--text-dim); opacity:0.7; }
+  #timerBar .label{ color: var(--text-dim); } #timerBar .clock{ font-size:18px; color: var(--brass-bright); font-weight:700; }
+  .status-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; font-size:13px; gap:10px; }
+  .status-row .k{ color: var(--text-dim); } .status-row .v{ font-family: var(--font-mono); color: var(--text); text-align:right; } .status-row .v.brass{ color: var(--brass-bright); }
+  .action-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .action-btn{ padding: 20px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--text); font-family: var(--font-mono); font-size: 14px; text-align:center; cursor:pointer; letter-spacing:0.02em; }
+  .action-btn .ic{ display:block; font-size: 24px; margin-bottom:6px; }
+  .action-btn.bite{ border-color: var(--sage); } .action-btn.fish{ border-color: var(--brass); background: rgba(198,139,60,0.08); }
+  .action-btn.pause-on{ border-color: var(--rust); color: #E08A6E; }
+  .action-btn.end{ grid-column: 1 / -1; background: transparent; color: var(--text-dim); border-style:dashed; padding:14px; font-size:12px; }
+  .confirm-row{ display:flex; gap:8px; } .confirm-row .btn{ flex:1; } .confirm-row .yes{ background: var(--rust); border-color: var(--rust); color:#fff; }
+  .action-panel{ margin-top: 4px; }
+  .angler-mini{ background: var(--bg-deep); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:8px; font-size:12.5px; }
+  .angler-mini .name{ color: var(--brass-bright); font-family: var(--font-mono); font-weight:700; margin-bottom:3px; }
+  .angler-mini .meta{ color: var(--text-dim); }
+  .angler-setup-card{ border-left: 3px solid var(--brass); margin-bottom:10px; }
+  .entry{ position:relative; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+  .entry::before{ content:""; position:absolute; left:-1px; top:0; bottom:0; width:3px; background: var(--line); border-radius: 3px 0 0 3px; }
+  .entry.t-fisch::before{ background: var(--brass); } .entry.t-biss::before{ background: var(--sage); }
+  .entry.t-koederwechsel::before{ background: #7EA8D8; } .entry.t-technikwechsel::before{ background: #B48EDE; }
+  .entry-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; gap:8px; flex-wrap:wrap; }
+  .entry-time{ font-family: var(--font-mono); font-size: 13px; color: var(--brass-bright); }
+  .entry-type{ font-family: var(--font-mono); font-size: 10px; text-transform:uppercase; letter-spacing:0.08em; color: var(--text-dim); border:1px solid var(--line); border-radius:10px; padding:2px 8px; }
+  .entry-angler{ font-family: var(--font-mono); font-size: 10px; color: var(--sage); border:1px solid var(--sage); border-radius:10px; padding:2px 8px; }
+  .entry-del{ font-size: 11px; color: var(--text-dim); cursor:pointer; font-family: var(--font-mono); margin-left:auto; }
+  .entry-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 4px 14px; font-size: 12.5px; color: var(--text-dim); }
+  .entry-grid b{ color: var(--text); font-weight:500; }
+  .entry-fish{ margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-family: var(--font-mono); font-size: 13px; color: var(--sage); }
+  .empty{ text-align:center; color: var(--text-dim); font-size: 13px; padding: 40px 10px; }
+  .stats-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:10px; margin-bottom:14px; }
+  .stat{ background: var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center; }
+  .stat .n{ font-family: var(--font-mono); font-size: 26px; color: var(--brass-bright); font-weight:700; } .stat .l{ font-size: 11px; color: var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background: var(--surface-2);
+    border:1px solid var(--brass); color: var(--text); padding: 10px 18px; border-radius: 20px; font-size: 13px;
+    font-family: var(--font-mono); opacity:0; transition: all 0.25s ease; pointer-events:none; z-index: 50; text-align:center; max-width:80%; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">// Feldjournal · lokal gespeichert</p>
+  <h1>Angel-Logbuch</h1>
+  <p class="sub">Ein Eintrag pro Momentaufnahme. Alles läuft offline auf diesem Gerät.</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="trip">Trip</div>
+  <div class="tab" data-tab="log">Logbuch</div>
+  <div class="tab" data-tab="stats">Statistik</div>
+</div>
+
+<main>
+  <section id="tab-trip" class="active">
+
+    <div id="setupView">
+      <div class="card">
+        <h2>Rahmendaten</h2>
+        <div class="field"><label>Wassertemperatur (°C)</label><input type="number" id="s-watertemp" step="0.1" inputmode="decimal"></div>
+        <div class="field">
+          <label>Technik zu Beginn</label>
+          <div class="chips" id="s-techChips">
+            <div class="chip" data-val="Schleppen">Schleppen</div>
+            <div class="chip" data-val="Stehend">Stehend</div>
+            <div class="chip" data-val="Werfen">Werfen</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Angler</h2>
+        <div class="btn-row" style="margin-bottom:12px;">
+          <input type="text" id="s-anglerName" placeholder="Name eingeben…">
+          <button class="btn btn-ghost" id="s-addAngler">+ Angler</button>
+        </div>
+        <div id="s-anglerList"></div>
+      </div>
+
+      <div class="card">
+        <h2>Standort &amp; Wetter</h2>
+        <div class="diag" id="diagBox">Prüfe…</div>
+        <button class="btn btn-ghost" id="retryFixBtn" style="margin-top:12px;">📍 Standort &amp; Wetter jetzt abrufen</button>
+      </div>
+
+      <button class="btn btn-brass" id="startTripBtn">▶ Trip starten</button>
+    </div>
+
+    <div id="activeView" style="display:none;">
+      <div id="timerBar">
+        <span class="label" id="timerLabel">Nächster Auto-Log in</span>
+        <span class="clock" id="clockText">05:00</span>
+      </div>
+
+      <div class="card">
+        <div class="status-row"><span class="k">Trip gestartet</span><span class="v" id="tripStartedAt">–</span></div>
+        <div class="status-row"><span class="k">Letzte Position</span><span class="v" id="lastFixLabel">–</span></div>
+        <div class="field" style="margin-top:6px;">
+          <label>Technik (tippen zum Wechseln)</label>
+          <div class="chips" id="techChipsActive">
+            <div class="chip" data-val="Schleppen">Schleppen</div>
+            <div class="chip" data-val="Stehend">Stehend</div>
+            <div class="chip" data-val="Werfen">Werfen</div>
+          </div>
+        </div>
+        <div class="status-row" style="margin-top:8px;"><span class="k">Technik seit</span><span class="v" id="techSinceLabel">–</span></div>
+        <div class="field" style="margin-top:10px;">
+          <label>Wassertemperatur (°C) — jederzeit anpassbar</label>
+          <input type="number" id="a-watertemp" step="0.1" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Angler &amp; aktive Köder</h2>
+        <div id="anglerCards"></div>
+      </div>
+
+      <div class="action-grid" id="actionGrid">
+        <div class="action-btn bite" data-action="biss"><span class="ic">〰</span>Biss</div>
+        <div class="action-btn fish" data-action="fisch"><span class="ic">🐟</span>Fisch</div>
+        <div class="action-btn" data-action="koederwechsel"><span class="ic">🔁</span>Köderwechsel</div>
+        <div class="action-btn" data-action="pause" id="pauseBtn"><span class="ic">⏸</span>Pause</div>
+        <div class="action-btn end" data-action="ende">Trip beenden</div>
+      </div>
+
+      <div class="action-panel" id="actionPanel"></div>
+    </div>
+  </section>
+
+  <section id="tab-log">
+    <div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn btn-ghost" id="exportBtn">⬇ CSV exportieren</button>
+      <button class="btn btn-ghost" id="clearBtn">🗑 Alle löschen</button>
+    </div>
+    <div id="clearConfirm" style="display:none; margin-bottom:14px;" class="confirm-row">
+      <button class="btn yes" id="clearYes">Ja, alles löschen</button>
+      <button class="btn" id="clearNo">Abbrechen</button>
+    </div>
+    <div id="logList"><div class="empty">Noch keine Einträge.</div></div>
+  </section>
+
+  <section id="tab-stats">
+    <div class="stats-grid">
+      <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Einträge</div></div>
+      <div class="stat"><div class="n" id="statCatches">0</div><div class="l">Fänge</div></div>
+      <div class="stat"><div class="n" id="statBites">0</div><div class="l">Bisse</div></div>
+      <div class="stat"><div class="n" id="statRate">0%</div><div class="l">Fangquote</div></div>
+    </div>
+    <div class="card"><h2>Top Köder (nach Fängen)</h2><div id="topBaits" class="empty" style="padding:20px 0;">Noch keine Daten</div></div>
+    <div class="card"><h2>Top Fischarten</h2><div id="topSpecies" class="empty" style="padding:20px 0;">Noch keine Daten</div></div>
+    <div class="card"><h2>Fänge pro Angler</h2><div id="topAnglers" class="empty" style="padding:20px 0;">Noch keine Daten</div></div>
+  </section>
+</main>
+
+<datalist id="colorlist"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+const ENTRIES_KEY = 'anglog_entries';
+const TRIPSTATE_KEY = 'anglog_tripState';
+const COLORS_KEY = 'anglog_knownColors';
+
+const BAIT_TYPES = ['Gummifisch','Wobbler','Spinner','Andere'];
+const SPECIES = ['Hecht','Zander','Barsch','Andere'];
+
+let entries = [], trip = null, anglers = [], technique = null;
+let waterTemp = null, paused = false, secondsLeft = 300;
+let lastKnownLoc = { lat:null, lon:null, acc:null, at:null };
+let lastKnownWx = { pressure:null, airtemp:null, wind:null, winddir:null, rain:null };
+let knownColors = [], setupAnglers = [], setupTechnique = null;
+let currentAction = null, panelAngler = null, panelBaitType = null, panelSpecies = null;
+let timerHandle = null;
+let diag = { storage:'?', secure:'?', geoApi:'?', geoLast:'–', wxLast:'–' };
+
+// ---------- storage layer: localStorage first, sandbox fallback ----------
+const store = {
+  mode: 'none',
+  init(){
+    try{
+      localStorage.setItem('__t','1'); localStorage.removeItem('__t');
+      this.mode = 'localStorage'; return;
+    }catch(e){}
+    if(window.storage && typeof window.storage.get === 'function'){ this.mode = 'sandbox'; return; }
+    this.mode = 'memory'; this._mem = {};
+  },
+  async get(k){
+    if(this.mode==='localStorage'){ const v = localStorage.getItem(k); return v!=null ? {value:v} : null; }
+    if(this.mode==='sandbox'){ try{ return await window.storage.get(k); }catch(e){ return null; } }
+    return this._mem[k]!=null ? {value:this._mem[k]} : null;
+  },
+  async set(k,v){
+    if(this.mode==='localStorage'){ localStorage.setItem(k,v); return true; }
+    if(this.mode==='sandbox'){ try{ await window.storage.set(k,v); return true; }catch(e){ return false; } }
+    this._mem[k]=v; return true;
+  }
+};
+
+// ---------- utils ----------
+function pad(n){ return n.toString().padStart(2,'0'); }
+function nowLocalISO(){ const d=new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function fmtClock(d){ const dt=new Date(d); return pad(dt.getHours())+':'+pad(dt.getMinutes()); }
+function fmtDT(v){ if(!v) return '–'; const d=new Date(v);
+  return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()+' · '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600); }
+function uid(){ return 'e'+Date.now()+Math.random().toString(36).slice(2,7); }
+function esc(s){ return (s||'').toString().replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ---------- diagnostics ----------
+function renderDiag(){
+  const box = document.getElementById('diagBox');
+  if(!box) return;
+  const storeCls = store.mode==='memory' ? 'err' : (store.mode==='localStorage' ? 'ok' : 'warn');
+  const storeTxt = store.mode==='localStorage' ? 'localStorage (dauerhaft)'
+    : store.mode==='sandbox' ? 'Sandbox-Speicher'
+    : 'NUR ARBEITSSPEICHER — Daten gehen beim Neuladen verloren!';
+  box.innerHTML = `
+    <div>Speicher: <span class="${storeCls}">${storeTxt}</span></div>
+    <div>HTTPS: <span class="${window.isSecureContext?'ok':'err'}">${window.isSecureContext?'ja':'NEIN — GPS braucht HTTPS'}</span></div>
+    <div>GPS-Schnittstelle: <span class="${navigator.geolocation?'ok':'err'}">${navigator.geolocation?'vorhanden':'fehlt'}</span></div>
+    <div>Letzter GPS-Versuch: <span class="${diag.geoLast.startsWith('✓')?'ok':(diag.geoLast==='–'?'':'err')}">${diag.geoLast}</span></div>
+    <div>Letzter Wetter-Abruf: <span class="${diag.wxLast.startsWith('✓')?'ok':(diag.wxLast==='–'?'':'err')}">${diag.wxLast}</span></div>`;
+}
+
+// ---------- persistence ----------
+async function loadAll(){
+  store.init();
+  try{ const r = await store.get(ENTRIES_KEY); entries = r && r.value ? JSON.parse(r.value) : []; }catch(e){ entries=[]; }
+  try{ const r2 = await store.get(TRIPSTATE_KEY);
+    if(r2 && r2.value){ const s = JSON.parse(r2.value);
+      trip=s.trip; anglers=s.anglers||[]; technique=s.technique; waterTemp=s.waterTemp; paused=s.paused;
+      secondsLeft=s.secondsLeft??300; lastKnownLoc=s.lastKnownLoc||lastKnownLoc; lastKnownWx=s.lastKnownWx||lastKnownWx; }
+  }catch(e){}
+  try{ const r3 = await store.get(COLORS_KEY); knownColors = r3 && r3.value ? JSON.parse(r3.value) : []; }catch(e){ knownColors=[]; }
+  refreshColorList(); renderDiag();
+  if(!trip && setupAnglers.length===0){ addSetupAngler('Ich'); }
+  renderAnglerSetup(); renderLog(); renderStats(); renderTripView();
+  if(trip) startTimer();
+}
+async function saveEntries(){ try{ await store.set(ENTRIES_KEY, JSON.stringify(entries)); }catch(e){ toast('⚠ Speichern fehlgeschlagen'); } }
+async function saveTripState(){ try{ await store.set(TRIPSTATE_KEY, JSON.stringify({ trip, anglers, technique, waterTemp, paused, secondsLeft, lastKnownLoc, lastKnownWx })); }catch(e){} }
+async function saveColors(){ try{ await store.set(COLORS_KEY, JSON.stringify(knownColors)); }catch(e){} }
+function learnColor(c){ c=(c||'').trim(); if(!c) return;
+  if(!knownColors.includes(c)){ knownColors.unshift(c); knownColors=knownColors.slice(0,40); saveColors(); refreshColorList(); } }
+function refreshColorList(){ document.getElementById('colorlist').innerHTML = knownColors.map(c=>`<option value="${esc(c)}">`).join(''); }
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    tab.classList.add('active'); document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='stats') renderStats();
+  });
+});
+
+// ---------- geolocation ----------
+const GEO_ERR = { 1:'Zugriff verweigert (Berechtigung)', 2:'Position nicht ermittelbar (kein Signal)', 3:'Zeitüberschreitung' };
+function getGeo(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){ diag.geoLast='✗ Schnittstelle fehlt'; resolve(null); return; }
+    if(!window.isSecureContext){ diag.geoLast='✗ Kein HTTPS'; resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        diag.geoLast = `✓ ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (±${Math.round(pos.coords.accuracy)}m)`;
+        resolve({ lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy, at:Date.now() });
+      },
+      err=>{ diag.geoLast = '✗ '+(GEO_ERR[err.code]||('Fehler '+err.code)); resolve(null); },
+      { enableHighAccuracy:true, timeout:15000, maximumAge:30000 }
+    );
+  });
+}
+async function getWeather(lat, lon){
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure`;
+    const res = await fetch(url);
+    if(!res.ok){ diag.wxLast='✗ Server antwortete '+res.status; return null; }
+    const data = await res.json(); const c = data.current;
+    const dirs = ['N','NO','O','SO','S','SW','W','NW'];
+    diag.wxLast = `✓ ${c.temperature_2m}°C, ${c.surface_pressure} hPa`;
+    return { pressure:c.surface_pressure??null, airtemp:c.temperature_2m??null, wind:c.wind_speed_10m??null,
+      winddir: c.wind_direction_10m!=null ? dirs[Math.round(c.wind_direction_10m/45)%8] : '', rain:c.precipitation??null };
+  }catch(e){ diag.wxLast='✗ Netzwerk blockiert oder offline'; return null; }
+}
+async function captureSnapshot(){
+  const geo = await getGeo();
+  if(geo) lastKnownLoc = geo;
+  const useLoc = geo || lastKnownLoc;
+  let wx = null;
+  if(useLoc.lat!=null){ wx = await getWeather(useLoc.lat, useLoc.lon); if(wx) lastKnownWx = wx; }
+  else diag.wxLast = '– (kein Standort)';
+  const finalWx = wx || lastKnownWx;
+  renderDiag(); await saveTripState();
+  return { datetime: nowLocalISO(), lat: useLoc.lat ?? '', lon: useLoc.lon ?? '',
+    pressure: finalWx.pressure ?? '', airtemp: finalWx.airtemp ?? '', wind: finalWx.wind ?? '',
+    winddir: finalWx.winddir ?? '', rain: finalWx.rain ?? '' };
+}
+
+document.getElementById('retryFixBtn').addEventListener('click', async (e)=>{
+  const b = e.target; b.disabled=true; b.textContent='Suche Standort…';
+  await captureSnapshot();
+  b.disabled=false; b.textContent='📍 Standort & Wetter jetzt abrufen';
+  toast(diag.geoLast.startsWith('✓') ? 'Standort erfasst' : 'Standort fehlgeschlagen');
+});
+
+// ---------- setup ----------
+document.querySelectorAll('#s-techChips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#s-techChips .chip').forEach(c=>c.classList.remove('sel'));
+    chip.classList.add('sel'); setupTechnique = chip.dataset.val;
+  });
+});
+function addSetupAngler(name){ setupAnglers.push({ id:uid(), name:name||'', baitType:null, baitCustom:'', baitColor:'', baitWeight:'' }); }
+document.getElementById('s-addAngler').addEventListener('click', ()=>{
+  const inp = document.getElementById('s-anglerName');
+  addSetupAngler(inp.value.trim() || ('Angler '+(setupAnglers.length+1)));
+  inp.value=''; renderAnglerSetup();
+});
+function renderAnglerSetup(){
+  const wrap = document.getElementById('s-anglerList');
+  wrap.innerHTML = setupAnglers.map(a=>`
+    <div class="card angler-setup-card" data-aid="${a.id}">
+      <div class="btn-row" style="margin-bottom:10px;">
+        <input type="text" data-role="name" value="${esc(a.name)}" placeholder="Name">
+        <button class="btn btn-ghost" data-role="remove">✕</button>
+      </div>
+      <div class="field"><label>Ködertyp</label>
+        <div class="chips" data-role="baitchips">
+          ${BAIT_TYPES.map(t=>`<div class="chip ${a.baitType===t?'sel':''}" data-val="${t}">${t}</div>`).join('')}
+        </div>
+        <input type="text" data-role="baitcustom" placeholder="Ködertyp…" value="${esc(a.baitCustom)}" style="display:${a.baitType==='Andere'?'block':'none'};margin-top:8px;">
+      </div>
+      <div class="row2">
+        <div class="field"><label>Farbe</label><input type="text" data-role="color" list="colorlist" value="${esc(a.baitColor)}"></div>
+        <div class="field" style="display:${a.baitType==='Gummifisch'?'block':'none'};"><label>Gewicht (g)</label><input type="number" data-role="weight" step="0.1" inputmode="decimal" value="${esc(a.baitWeight)}"></div>
+      </div>
+    </div>`).join('');
+
+  wrap.querySelectorAll('.angler-setup-card').forEach(card=>{
+    const a = setupAnglers.find(x=>x.id===card.dataset.aid);
+    card.querySelector('[data-role="name"]').addEventListener('input', e=>{ a.name=e.target.value; });
+    card.querySelector('[data-role="remove"]').addEventListener('click', ()=>{ setupAnglers=setupAnglers.filter(x=>x.id!==a.id); renderAnglerSetup(); });
+    card.querySelectorAll('[data-role="baitchips"] .chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{ a.baitType = chip.dataset.val; renderAnglerSetup(); });
+    });
+    card.querySelector('[data-role="baitcustom"]').addEventListener('input', e=>{ a.baitCustom=e.target.value; });
+    card.querySelector('[data-role="color"]').addEventListener('input', e=>{ a.baitColor=e.target.value; });
+    const w = card.querySelector('[data-role="weight"]'); if(w) w.addEventListener('input', e=>{ a.baitWeight=e.target.value; });
+  });
+}
+
+// ---------- start trip ----------
+document.getElementById('startTripBtn').addEventListener('click', async (ev)=>{
+  if(!setupTechnique){ toast('Bitte Technik wählen'); return; }
+  const valid = setupAnglers.filter(a=>a.name.trim());
+  if(valid.length===0){ toast('Mindestens einen Angler eintragen'); return; }
+  for(const a of valid){ const t = a.baitType==='Andere' ? a.baitCustom.trim() : a.baitType;
+    if(!t){ toast(`Ködertyp für ${a.name} fehlt`); return; } }
+
+  const btn = ev.target; btn.disabled=true; btn.textContent='Starte…';
+  waterTemp = document.getElementById('s-watertemp').value || null;
+  const snap = await captureSnapshot();
+  const now = Date.now();
+  trip = { id:'t'+now, startTime:now };
+  technique = { type:setupTechnique, start:now };
+  anglers = valid.map(a=>{
+    const type = a.baitType==='Andere' ? a.baitCustom.trim() : a.baitType;
+    learnColor(a.baitColor);
+    return { name:a.name.trim(), bait:{ type, color:a.baitColor.trim(), weight: a.baitType==='Gummifisch'?a.baitWeight:'', start:now } };
+  });
+  paused=false; secondsLeft=300;
+  anglers.forEach(a=>addEntry(makeEntry(snap,'start',{ angler:a.name, baittype:a.bait.type, baitcolor:a.bait.color, baitweight:a.bait.weight })));
+  await saveTripState();
+  btn.disabled=false; btn.textContent='▶ Trip starten';
+  renderTripView(); startTimer(); toast('▶ Trip gestartet');
+});
+
+// ---------- entries ----------
+function makeEntry(snap, type, extra){
+  return Object.assign({
+    id:uid(), tripId:trip?trip.id:'', type, datetime:snap.datetime,
+    lat:snap.lat, lon:snap.lon, pressure:snap.pressure, airtemp:snap.airtemp, wind:snap.wind, winddir:snap.winddir, rain:snap.rain,
+    watertemp: waterTemp ?? '', technique: technique?technique.type:'', angler:'',
+    baittype:'', baitcolor:'', baitweight:'', baitdurationmin:'', techdurationmin:'',
+    depth:'', bite:0, catch:0, species:'', fishlen:'', fishweight:'', notes:''
+  }, extra||{});
+}
+function addEntry(e){ entries.unshift(e); saveEntries(); renderLog(); renderStats(); }
+
+// ---------- active view ----------
+function renderTripView(){
+  const setup=document.getElementById('setupView'), active=document.getElementById('activeView');
+  if(trip){
+    setup.style.display='none'; active.style.display='block';
+    document.getElementById('tripStartedAt').textContent = fmtClock(trip.startTime);
+    document.getElementById('lastFixLabel').textContent = lastKnownLoc.lat!=null
+      ? `${lastKnownLoc.lat.toFixed(4)}, ${lastKnownLoc.lon.toFixed(4)}` : 'kein Fix';
+    document.querySelectorAll('#techChipsActive .chip').forEach(c=>c.classList.toggle('sel', technique && c.dataset.val===technique.type));
+    document.getElementById('techSinceLabel').textContent = technique ? fmtClock(technique.start) : '–';
+    document.getElementById('a-watertemp').value = waterTemp ?? '';
+    document.getElementById('anglerCards').innerHTML = anglers.map(a=>`
+      <div class="angler-mini"><div class="name">${esc(a.name)}</div>
+      <div class="meta">${esc(a.bait.type)}${a.bait.color?' · '+esc(a.bait.color):''}${a.bait.weight?' · '+esc(a.bait.weight)+'g':''} · seit ${fmtClock(a.bait.start)}</div></div>`).join('');
+    updatePauseButton(); updateClockDisplay();
+  } else {
+    setup.style.display='block'; active.style.display='none'; renderDiag();
+  }
+}
+document.getElementById('a-watertemp').addEventListener('input', e=>{ waterTemp=e.target.value; saveTripState(); });
+
+document.getElementById('techChipsActive').addEventListener('click', async (e)=>{
+  const chip=e.target.closest('.chip'); if(!chip||!trip) return;
+  const newVal=chip.dataset.val; if(technique && technique.type===newVal) return;
+  const oldTech=technique, durMin = oldTech ? Math.round((Date.now()-oldTech.start)/60000) : '';
+  const snap = { datetime:nowLocalISO(), lat:lastKnownLoc.lat??'', lon:lastKnownLoc.lon??'', pressure:'', airtemp:'', wind:'', winddir:'', rain:'' };
+  technique = { type:newVal, start:Date.now() };
+  addEntry(makeEntry(snap,'technikwechsel',{ technique: oldTech?oldTech.type:'', techdurationmin:durMin, notes:`neue Technik: ${newVal}` }));
+  await saveTripState(); renderTripView(); toast(`Technik: ${newVal}`);
+});
+
+function updatePauseButton(){
+  const btn=document.getElementById('pauseBtn');
+  btn.classList.toggle('pause-on', paused);
+  btn.innerHTML = paused ? '<span class="ic">▶</span>Fortsetzen' : '<span class="ic">⏸</span>Pause';
+  document.getElementById('timerBar').classList.toggle('paused', paused);
+  document.getElementById('timerLabel').textContent = paused ? 'Pausiert' : 'Nächster Auto-Log in';
+}
+function updateClockDisplay(){
+  const m=Math.floor(secondsLeft/60), s=secondsLeft%60;
+  document.getElementById('clockText').textContent = paused ? '––:––' : pad(m)+':'+pad(s);
+  document.getElementById('timerBar').classList.toggle('due', !paused && secondsLeft<=0);
+}
+function startTimer(){
+  clearInterval(timerHandle);
+  timerHandle = setInterval(async ()=>{
+    if(!trip||paused) return;
+    secondsLeft--;
+    if(secondsLeft<=0){ secondsLeft=300; const snap=await captureSnapshot(); addEntry(makeEntry(snap,'auto')); renderTripView(); toast('⏱ Automatischer Eintrag'); }
+    updateClockDisplay(); saveTripState();
+  }, 1000);
+}
+
+// ---------- actions ----------
+document.getElementById('actionGrid').addEventListener('click', (e)=>{
+  const btn=e.target.closest('.action-btn'); if(!btn) return;
+  const action=btn.dataset.action;
+  if(action==='pause'){ togglePause(); return; }
+  if(action==='ende'){ renderEndConfirm(); return; }
+  currentAction=action; panelAngler = anglers.length===1 ? anglers[0].name : null;
+  renderActionPanel(action);
+});
+async function togglePause(){
+  const snap={ datetime:nowLocalISO(), lat:lastKnownLoc.lat??'', lon:lastKnownLoc.lon??'', pressure:'', airtemp:'', wind:'', winddir:'', rain:'' };
+  paused=!paused;
+  addEntry(makeEntry(snap, paused?'pause':'fortsetzung'));
+  toast(paused?'⏸ Pausiert':'▶ Fortgesetzt');
+  updatePauseButton(); saveTripState();
+}
+function anglerChipsHtml(){
+  if(anglers.length<=1) return '';
+  return `<div class="field"><label>Angler</label><div class="chips" id="p-anglerChips">
+    ${anglers.map(a=>`<div class="chip" data-val="${esc(a.name)}">${esc(a.name)}</div>`).join('')}</div></div>`;
+}
+function bindAnglerChips(){
+  const el=document.getElementById('p-anglerChips'); if(!el) return;
+  el.querySelectorAll('.chip').forEach(chip=>chip.addEventListener('click', ()=>{
+    el.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); chip.classList.add('sel'); panelAngler=chip.dataset.val;
+  }));
+}
+function renderActionPanel(action){
+  const panel=document.getElementById('actionPanel');
+  panelBaitType=null; panelSpecies=null;
+  if(action==='biss'){
+    panel.innerHTML = `<div class="card"><h2>Biss</h2>${anglerChipsHtml()}
+      <div class="field"><label>Wassertiefe (m)</label><input type="number" id="p-depth" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Notiz (optional)</label><textarea id="p-notes"></textarea></div>
+      <div class="confirm-row"><button class="btn btn-brass" id="p-save">Speichern</button><button class="btn" id="p-cancel">Abbrechen</button></div></div>`;
+    bindAnglerChips();
+  } else if(action==='fisch'){
+    panel.innerHTML = `<div class="card"><h2>Fisch gefangen</h2>${anglerChipsHtml()}
+      <div class="field"><label>Wassertiefe (m)</label><input type="number" id="p-depth" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Fischart</label>
+        <div class="chips" id="p-speciesChips">${SPECIES.map(s=>`<div class="chip" data-val="${s}">${s}</div>`).join('')}</div>
+        <input type="text" id="p-species-custom" placeholder="Art…" style="display:none;margin-top:8px;"></div>
+      <div class="row2">
+        <div class="field"><label>Länge (cm)</label><input type="number" id="p-fishlen" step="0.1" inputmode="decimal"></div>
+        <div class="field"><label>Gewicht (kg)</label><input type="number" id="p-fishweight" step="0.01" inputmode="decimal"></div></div>
+      <div class="field"><label>Notiz (optional)</label><textarea id="p-notes"></textarea></div>
+      <div class="confirm-row"><button class="btn btn-brass" id="p-save">Speichern</button><button class="btn" id="p-cancel">Abbrechen</button></div></div>`;
+    bindAnglerChips();
+    document.querySelectorAll('#p-speciesChips .chip').forEach(chip=>chip.addEventListener('click', ()=>{
+      document.querySelectorAll('#p-speciesChips .chip').forEach(c=>c.classList.remove('sel'));
+      chip.classList.add('sel'); panelSpecies=chip.dataset.val;
+      document.getElementById('p-species-custom').style.display = panelSpecies==='Andere'?'block':'none';
+    }));
+  } else if(action==='koederwechsel'){
+    panel.innerHTML = `<div class="card"><h2>Köderwechsel</h2>${anglerChipsHtml()}
+      <div class="field"><label>Neuer Ködertyp</label>
+        <div class="chips" id="p-baitChips">${BAIT_TYPES.map(t=>`<div class="chip" data-val="${t}">${t}</div>`).join('')}</div>
+        <input type="text" id="p-baittype-custom" placeholder="Ködertyp…" style="display:none;margin-top:8px;"></div>
+      <div class="row2">
+        <div class="field"><label>Farbe</label><input type="text" id="p-baitcolor" list="colorlist"></div>
+        <div class="field" id="p-baitweightField" style="display:none;"><label>Gewicht (g)</label><input type="number" id="p-baitweight" step="0.1" inputmode="decimal"></div></div>
+      <div class="field"><label>Notiz (optional)</label><textarea id="p-notes"></textarea></div>
+      <div class="confirm-row"><button class="btn btn-brass" id="p-save">Wechseln</button><button class="btn" id="p-cancel">Abbrechen</button></div></div>`;
+    bindAnglerChips();
+    document.querySelectorAll('#p-baitChips .chip').forEach(chip=>chip.addEventListener('click', ()=>{
+      document.querySelectorAll('#p-baitChips .chip').forEach(c=>c.classList.remove('sel'));
+      chip.classList.add('sel'); panelBaitType=chip.dataset.val;
+      document.getElementById('p-baittype-custom').style.display = panelBaitType==='Andere'?'block':'none';
+      document.getElementById('p-baitweightField').style.display = panelBaitType==='Gummifisch'?'block':'none';
+    }));
+  }
+  document.getElementById('p-cancel').addEventListener('click', ()=>{ panel.innerHTML=''; currentAction=null; });
+  document.getElementById('p-save').addEventListener('click', ()=>savePanelAction(action));
+}
+async function savePanelAction(action){
+  if(anglers.length>1 && !panelAngler){ toast('Bitte Angler auswählen'); return; }
+  const angler = panelAngler || anglers[0].name;
+  const btn=document.getElementById('p-save'); btn.disabled=true; btn.textContent='Speichere…';
+  const notes = document.getElementById('p-notes') ? document.getElementById('p-notes').value : '';
+  const ao = anglers.find(a=>a.name===angler);
+
+  if(action==='biss'){
+    const depth=document.getElementById('p-depth').value;
+    const snap=await captureSnapshot();
+    addEntry(makeEntry(snap,'biss',{ angler, depth, bite:1, notes, baittype:ao.bait.type, baitcolor:ao.bait.color, baitweight:ao.bait.weight }));
+    toast('〰 Biss gespeichert');
+  } else if(action==='fisch'){
+    const depth=document.getElementById('p-depth').value;
+    const species = panelSpecies==='Andere' ? document.getElementById('p-species-custom').value.trim() : panelSpecies;
+    const snap=await captureSnapshot();
+    addEntry(makeEntry(snap,'fisch',{ angler, depth, species,
+      fishlen:document.getElementById('p-fishlen').value, fishweight:document.getElementById('p-fishweight').value,
+      bite:1, catch:1, notes, baittype:ao.bait.type, baitcolor:ao.bait.color, baitweight:ao.bait.weight }));
+    toast('🐟 Fang gespeichert!');
+  } else if(action==='koederwechsel'){
+    const newType = panelBaitType==='Andere' ? document.getElementById('p-baittype-custom').value.trim() : panelBaitType;
+    if(!newType){ toast('Bitte Ködertyp wählen'); btn.disabled=false; btn.textContent='Wechseln'; return; }
+    const oldBait=ao.bait, durationMin=Math.round((Date.now()-oldBait.start)/60000);
+    const newColor=document.getElementById('p-baitcolor').value; learnColor(newColor);
+    const snap=await captureSnapshot();
+    addEntry(makeEntry(snap,'koederwechsel',{ angler, baittype:oldBait.type, baitcolor:oldBait.color, baitweight:oldBait.weight,
+      baitdurationmin:durationMin, notes:(notes?notes+' · ':'')+`neuer Köder: ${newType}` }));
+    ao.bait = { type:newType, color:newColor.trim(), weight: panelBaitType==='Gummifisch'?document.getElementById('p-baitweight').value:'', start:Date.now() };
+    secondsLeft=300; saveTripState();
+    toast(`🔁 ${angler}: Köder gewechselt (${durationMin} min genutzt)`);
+  }
+  document.getElementById('actionPanel').innerHTML=''; currentAction=null; renderTripView();
+}
+
+// ---------- end trip ----------
+function renderEndConfirm(){
+  const panel=document.getElementById('actionPanel');
+  panel.innerHTML = `<div class="card"><h2>Trip wirklich beenden?</h2>
+    <div class="confirm-row"><button class="btn yes" id="endYes">Ja, beenden</button><button class="btn" id="endNo">Abbrechen</button></div></div>`;
+  document.getElementById('endNo').addEventListener('click', ()=>{ panel.innerHTML=''; });
+  document.getElementById('endYes').addEventListener('click', endTrip);
+}
+async function endTrip(){
+  const snap=await captureSnapshot();
+  addEntry(makeEntry(snap,'ende'));
+  const te = entries.filter(e=>e.tripId===trip.id), catches = te.filter(e=>e.type==='fisch').length;
+  clearInterval(timerHandle);
+  trip=null; anglers=[]; technique=null; paused=false; secondsLeft=300;
+  document.getElementById('actionPanel').innerHTML='';
+  await saveTripState();
+  setupAnglers=[]; addSetupAngler('Ich'); setupTechnique=null; renderAnglerSetup();
+  renderTripView();
+  toast(`Trip beendet · ${te.length} Einträge · ${catches} Fänge`);
+}
+
+// ---------- log ----------
+const TYPE_LABEL = { start:'Start', auto:'Auto', biss:'Biss', fisch:'Fisch', koederwechsel:'Köderwechsel', technikwechsel:'Technikwechsel', pause:'Pause', fortsetzung:'Fortsetzung', ende:'Ende' };
+function renderLog(){
+  const list=document.getElementById('logList');
+  if(entries.length===0){ list.innerHTML='<div class="empty">Noch keine Einträge.</div>'; return; }
+  list.innerHTML = entries.map(e=>`
+    <div class="entry t-${e.type}">
+      <div class="entry-top">
+        <span class="entry-time">${fmtDT(e.datetime)}</span>
+        <span class="entry-type">${TYPE_LABEL[e.type]||e.type}</span>
+        ${e.angler?`<span class="entry-angler">${esc(e.angler)}</span>`:''}
+        <span class="entry-del" onclick="deleteEntry('${e.id}')">Löschen</span>
+      </div>
+      <div class="entry-grid">
+        ${e.technique?`<div>Technik: <b>${esc(e.technique)}</b></div>`:''}
+        ${e.pressure!==''&&e.pressure!=null?`<div>Druck: <b>${e.pressure} hPa</b></div>`:''}
+        ${e.airtemp!==''&&e.airtemp!=null?`<div>Luft: <b>${e.airtemp}°C</b></div>`:''}
+        ${e.wind!==''&&e.wind!=null?`<div>Wind: <b>${e.wind} km/h ${e.winddir||''}</b></div>`:''}
+        ${e.watertemp!==''&&e.watertemp!=null?`<div>Wasser: <b>${e.watertemp}°C</b></div>`:''}
+        ${e.depth?`<div>Tiefe: <b>${e.depth} m</b></div>`:''}
+        ${e.baittype?`<div>Köder: <b>${esc(e.baittype)}${e.baitcolor?' · '+esc(e.baitcolor):''}</b></div>`:''}
+        ${e.baitdurationmin!==''?`<div>Genutzt: <b>${e.baitdurationmin} min</b></div>`:''}
+        ${e.techdurationmin!==''?`<div>Technik: <b>${e.techdurationmin} min</b></div>`:''}
+      </div>
+      ${e.type==='fisch'?`<div class="entry-fish">🐟 ${esc(e.species)||'Fisch'} ${e.fishlen?`· ${e.fishlen}cm`:''} ${e.fishweight?`· ${e.fishweight}kg`:''}</div>`:''}
+      ${e.notes?`<div class="entry-fish" style="color:var(--text-dim);">${esc(e.notes)}</div>`:''}
+    </div>`).join('');
+}
+window.deleteEntry = async function(id){ entries=entries.filter(e=>e.id!==id); await saveEntries(); renderLog(); renderStats(); };
+document.getElementById('clearBtn').addEventListener('click', ()=>{ if(entries.length===0) return; document.getElementById('clearConfirm').style.display='flex'; });
+document.getElementById('clearNo').addEventListener('click', ()=>{ document.getElementById('clearConfirm').style.display='none'; });
+document.getElementById('clearYes').addEventListener('click', async ()=>{ entries=[]; await saveEntries(); renderLog(); renderStats();
+  document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht'); });
+
+// ---------- CSV ----------
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  if(entries.length===0){ toast('Keine Daten zum Exportieren'); return; }
+  const cols=['datetime','type','tripId','angler','technique','lat','lon','pressure','airtemp','wind','winddir','rain','watertemp',
+    'depth','baittype','baitcolor','baitweight','baitdurationmin','techdurationmin','bite','catch','species','fishlen','fishweight','notes'];
+  const rows = entries.map(e=>cols.map(c=>(e[c]??'').toString().replace(/;/g,',').replace(/\n/g,' ')).join(';'));
+  const csv = '\uFEFF'+[cols.join(';'),...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='angel-logbuch_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('CSV exportiert');
+});
+
+// ---------- stats ----------
+function listBlock(id, arr, suffix){
+  const el = document.getElementById(id);
+  el.outerHTML = arr.length
+    ? `<div id="${id}">`+arr.map(([k,v])=>`<div class="entry-grid" style="margin-bottom:4px;"><div>${esc(k)}</div><b>${v}${suffix}</b></div>`).join('')+'</div>'
+    : `<div id="${id}" class="empty" style="padding:20px 0;">Noch keine Daten</div>`;
+}
+function renderStats(){
+  document.getElementById('statTotal').textContent = entries.length;
+  const catches = entries.filter(e=>e.type==='fisch');
+  const bites = entries.filter(e=>e.type==='biss'||e.type==='fisch');
+  document.getElementById('statCatches').textContent = catches.length;
+  document.getElementById('statBites').textContent = bites.length;
+  document.getElementById('statRate').textContent = bites.length ? Math.round(catches.length/bites.length*100)+'%' : '0%';
+  const count = (key)=>{ const m={}; catches.forEach(e=>{ if(e[key]) m[e[key]]=(m[e[key]]||0)+1; }); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
+  listBlock('topBaits', count('baittype'), ' Fänge');
+  listBlock('topSpecies', count('species'), '×');
+  listBlock('topAnglers', count('angler'), ' Fänge');
+}
+
+loadAll();
+</script>
+</body>
+</html>
