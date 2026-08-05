@@ -25,10 +25,6 @@
   .eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--brass); margin:0 0 5px; font-weight:700; }
   h1{ font-weight:800; font-size:27px; margin:0 0 3px; letter-spacing:-0.02em; }
   .sub{ font-size:13px; color:var(--text-dim); margin:0; }
-  .tabs{ display:flex; gap:3px; margin:14px 20px 0; background:var(--surface-2); padding:4px; border-radius:8px; border:1px solid var(--line); }
-  .tab{ flex:1; text-align:center; padding:10px 2px; font-family:var(--font-mono); font-size:11px;
-    text-transform:uppercase; color:var(--text-dim); border-radius:5px; cursor:pointer; user-select:none; font-weight:700; }
-  .tab.active{ background:var(--text); color:#fff; }
   main{ padding:16px 20px 0; }
   section{ display:none; } section.active{ display:block; }
   .card{ background:var(--surface); border:2px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; }
@@ -88,7 +84,6 @@
   .action-btn.bite{ border-color:var(--sage); color:var(--sage); }
   .action-btn.fish{ border-color:var(--brass); background:var(--brass); color:#fff; }
   .action-btn.pause-on{ border-color:var(--rust); color:var(--rust); }
-  .action-btn.end{ grid-column:1/-1; background:transparent; color:var(--text-dim); border-style:dashed; padding:14px; font-size:12px; }
   .confirm-row{ display:flex; gap:8px; } .confirm-row .btn{ flex:1; }
   .confirm-row .yes{ background:var(--rust); border-color:var(--rust); color:#fff; }
   .fixbadge{ font-family:var(--font-mono); font-size:12px; font-weight:800; padding:9px 12px; border-radius:8px;
@@ -128,6 +123,7 @@
   .entry.t-biss::before{ background:var(--sage); }
   .entry.t-koederwechsel::before{ background:var(--water); }
   .entry.t-technikwechsel::before{ background:#6B3F96; }
+  .entry.t-tiefe::before{ background:var(--water); }
   .entry.t-fisch{ border:3px solid var(--brass); background:var(--brass-tint); padding:16px 16px 16px 22px;
     box-shadow:0 3px 0 rgba(138,90,14,0.22); margin-bottom:14px; }
   .entry.t-fisch::before{ background:var(--brass); width:10px; left:-3px; top:-3px; bottom:-3px; }
@@ -183,21 +179,78 @@
   .modal-inner{ background:var(--bg); width:100%; max-height:92vh; overflow-y:auto; border-radius:16px 16px 0 0;
     padding:18px 20px calc(24px + env(safe-area-inset-bottom)); border-top:3px solid var(--brass); }
   .modal-inner h3{ margin:0 0 14px; font-size:18px; font-weight:800; }
+
+  /* Lock screen */
+  #lockScreen{ position:fixed; inset:0; background:var(--bg); z-index:2000; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:24px; text-align:center; }
+  #lockScreen h1{ margin-bottom:4px; } #lockScreen p{ color:var(--text-dim); font-size:13px; margin:0 0 20px; }
+  #lockScreen .card{ width:100%; max-width:320px; text-align:left; }
+  #lockErr{ color:var(--rust); font-size:12.5px; font-weight:700; margin-top:8px; min-height:16px; }
+
+  /* Header / menu */
+  header{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .menuBtn{ flex-shrink:0; margin-top:2px; width:42px; height:42px; border-radius:9px; border:2px solid var(--line);
+    background:#fff; font-size:18px; cursor:pointer; color:var(--text); }
+  .navPanel{ position:fixed; inset:0; z-index:1300; display:none; }
+  .navPanel.open{ display:block; }
+  .navPanel .scrim{ position:absolute; inset:0; background:rgba(20,32,28,0.5); }
+  .navPanel .sheet{ position:absolute; top:0; right:0; bottom:0; width:78%; max-width:300px; background:var(--bg);
+    border-left:3px solid var(--brass); padding:22px 16px; padding-top:calc(22px + env(safe-area-inset-top)); }
+  .navItem{ padding:14px 12px; border-radius:8px; font-weight:800; font-size:15px; cursor:pointer;
+    margin-bottom:4px; color:var(--text); }
+  .navItem.active{ background:var(--text); color:#fff; }
+
+  /* Collapsible cards */
+  details.card{ padding:0; }
+  details.card summary{ list-style:none; cursor:pointer; padding:16px; font-family:var(--font-mono); font-size:11px;
+    text-transform:uppercase; letter-spacing:0.1em; color:var(--sage); font-weight:700; display:flex; align-items:center; gap:8px; }
+  details.card summary::-webkit-details-marker{ display:none; }
+  details.card summary::after{ content:"▾"; margin-left:auto; color:var(--text-dim); transition:transform 0.15s; }
+  details.card[open] summary::after{ transform:rotate(180deg); }
+  details.card summary::before{ content:none; }
+  details.card .cardBody{ padding:0 16px 16px; }
+
+  /* Compact depth-log tile */
+  .depthlog-card{ border-color:var(--water); }
+  .depthlog-row{ display:flex; align-items:center; gap:10px; }
+  .depthlog-row .depth-val{ font-size:30px; }
+  .depthlog-ctrl{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:10px; }
+
+  /* Seekarte toggle */
+  .seek-toggle{ display:flex; gap:8px; margin-bottom:12px; }
+  .seek-toggle .chip{ flex:1; text-align:center; }
 </style>
 </head>
 <body>
 
-<header>
-  <p class="eyebrow">// Feldjournal · lokal gespeichert</p>
+<div id="lockScreen">
   <h1>Angel-Logbuch</h1>
-  <p class="sub">Alles läuft offline auf diesem Gerät.</p>
+  <p>Zugangscode eingeben</p>
+  <div class="card">
+    <div class="field"><label>Code</label><input type="text" id="lockCode" autocomplete="off" autocapitalize="off"></div>
+    <button class="btn btn-brass" id="lockBtn">Freischalten</button>
+    <div id="lockErr"></div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <p class="eyebrow">// Feldjournal · geräteübergreifend</p>
+    <h1>Angel-Logbuch</h1>
+    <p class="sub" id="syncStatus">Alles läuft offline, synchronisiert im Hintergrund.</p>
+  </div>
+  <button class="menuBtn" id="menuBtn">☰</button>
 </header>
 
-<div class="tabs">
-  <div class="tab active" data-tab="trip">Trip</div>
-  <div class="tab" data-tab="baits">Köder</div>
-  <div class="tab" data-tab="trips">Trips</div>
-  <div class="tab" data-tab="stats">Statistik</div>
+<div class="navPanel" id="navPanel">
+  <div class="scrim" id="navScrim"></div>
+  <div class="sheet">
+    <div class="navItem active" data-tab="trip">Trip</div>
+    <div class="navItem" data-tab="baits">Köder</div>
+    <div class="navItem" data-tab="trips">History</div>
+    <div class="navItem" data-tab="seekarte">Seekarte</div>
+    <div class="navItem" data-tab="stats">Statistik</div>
+  </div>
 </div>
 
 <main>
@@ -229,13 +282,20 @@
     </div>
 
     <div id="activeView" style="display:none;">
-      <div id="timerBar">
+      <div id="timerBar" style="display:none;">
         <span class="label" id="timerLabel">Nächster Auto-Log in</span>
         <span class="clock" id="clockText">05:00</span>
       </div>
 
-      <div class="card depth-card">
-        <h2>Wassertiefe (läuft mit)</h2>
+      <div class="action-grid" id="actionGrid">
+        <div class="action-btn bite" data-action="biss"><span class="ic">〰</span>Biss</div>
+        <div class="action-btn fish" data-action="fisch"><span class="ic">🐟</span>Fisch</div>
+        <div class="action-btn" data-action="koederwechsel"><span class="ic">🔁</span>Köderwechsel</div>
+        <div class="action-btn" data-action="pause" id="pauseBtn"><span class="ic">⏸</span>Pause</div>
+      </div>
+
+      <div class="card depth-card depthlog-card">
+        <h2>Wassertiefe loggen</h2>
         <div class="depth-head">
           <div class="depth-val" id="depthVal">–<span>m</span></div>
           <div class="depth-src" id="depthSrc">nicht gesetzt</div>
@@ -247,19 +307,21 @@
           <button data-d="0.5">+½</button>
           <button data-d="1">+1</button>
         </div>
-        <div id="depthSuggest"></div>
       </div>
 
-      <div class="warnbox" style="margin-bottom:14px;">
-        ⚠ Bildschirm bitte anlassen. iOS friert die App im Standby ein – dann pausiert der Auto-Log.
-        Beim Zurückkommen wird die Lücke erkannt und ein Punkt nachgeholt.
-      </div>
+      <details class="card" open>
+        <summary>Angler &amp; aktive Köder</summary>
+        <div class="cardBody"><div id="anglerCards"></div>
+          <p style="font-size:11.5px;color:var(--text-dim);margin:4px 0 0;font-weight:600;">Antippen, um einen falsch eingetragenen Köder zu korrigieren.</p></div>
+      </details>
 
-      <div class="card">
-        <div class="status-row"><span class="k">Trip gestartet</span><span class="v" id="tripStartedAt">–</span></div>
-        <div class="status-row"><span class="k">Letzte Position</span><span class="v" id="lastFixLabel">–</span></div>
-        <div class="status-row"><span class="k">Luftdruck (Meereshöhe)</span><span class="v" id="pressLabel">–</span></div>
-        <div class="field" style="margin-top:8px;"><label>Technik (tippen zum Wechseln)</label>
+      <details class="card">
+        <summary>Letzte Einträge</summary>
+        <div class="cardBody"><div id="recentList"></div></div>
+      </details>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="field"><label>Technik (tippen zum Wechseln)</label>
           <div class="chips big" id="techChipsActive">
             <div class="chip" data-val="Schleppen">Schleppen</div>
             <div class="chip" data-val="Werfen">Werfen</div>
@@ -267,16 +329,8 @@
         <div class="field" style="margin-top:12px;"><label>Wassertemperatur (°C)</label>
           <input type="number" id="a-watertemp" step="0.1" inputmode="decimal"></div>
       </div>
-      <div class="card"><h2>Angler &amp; aktive Köder</h2><div id="anglerCards"></div>
-        <p style="font-size:11.5px;color:var(--text-dim);margin:4px 0 0;font-weight:600;">Antippen, um einen falsch eingetragenen Köder zu korrigieren.</p></div>
-      <div class="action-grid" id="actionGrid">
-        <div class="action-btn bite" data-action="biss"><span class="ic">〰</span>Biss</div>
-        <div class="action-btn fish" data-action="fisch"><span class="ic">🐟</span>Fisch</div>
-        <div class="action-btn" data-action="koederwechsel"><span class="ic">🔁</span>Köderwechsel</div>
-        <div class="action-btn" data-action="pause" id="pauseBtn"><span class="ic">⏸</span>Pause</div>
-        <div class="action-btn end" data-action="ende">Trip beenden</div>
-      </div>
-      <div class="card" style="margin-top:4px;"><h2>Letzte Einträge</h2><div id="recentList"></div></div>
+
+      <button class="btn" data-action="ende" id="endTripBtn" style="margin-top:4px;border-style:dashed;color:var(--text-dim);">Trip beenden</button>
     </div>
   </section>
 
@@ -287,6 +341,7 @@
         Nur Modell und Typ – Länge und Gewicht wählst du beim Anködern.</p>
       <div class="bait-grid" id="baitBoxGrid"></div>
     </div>
+    <button class="btn" id="uploadBaitsBtn" style="margin-bottom:14px;">⬆ Lokale Köder dieses Geräts hochladen</button>
   </section>
 
   <section id="tab-trips">
@@ -295,16 +350,29 @@
         <button class="btn" id="exportBtn">⬇ CSV export</button>
         <button class="btn" id="importBtn">⬆ CSV import</button>
       </div>
+      <div class="btn-row" style="margin-bottom:10px;">
+        <button class="btn" id="uploadTripsBtn">⬆ Lokale Trips dieses Geräts hochladen</button>
+      </div>
       <div class="btn-row" style="margin-bottom:14px;">
-        <button class="btn" id="clearBtn">🗑 Alle Daten löschen</button>
+        <button class="btn" id="clearBtn">🗑 Alle Daten löschen (alle Geräte)</button>
       </div>
       <div id="clearConfirm" style="display:none;margin-bottom:14px;" class="confirm-row">
-        <button class="btn yes" id="clearYes">Ja, alles löschen</button>
+        <button class="btn yes" id="clearYes">Ja, überall löschen</button>
         <button class="btn" id="clearNo">Abbrechen</button>
       </div>
       <div id="tripList"><div class="empty">Noch keine Trips aufgezeichnet.</div></div>
     </div>
     <div id="tripDetailView" style="display:none;"></div>
+  </section>
+
+  <section id="tab-seekarte">
+    <div class="seek-toggle">
+      <div class="chip sel" id="seekHeat">Biss/Fisch Heatmap</div>
+      <div class="chip" id="seekDepth">Tiefenkarte</div>
+    </div>
+    <div class="card">
+      <div class="map-box" id="seekMapBox"><div class="empty" style="padding:26px 0;">Lade Karte…</div></div>
+    </div>
   </section>
 
   <section id="tab-stats">
@@ -328,8 +396,35 @@
 <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
 <input type="file" id="csvInput" accept=".csv,text/csv" style="display:none;">
 
-<script>
-const K_ENTRIES='anglog_entries', K_TRIP='anglog_tripState', K_BAITS='anglog_baitBox';
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, query, where, getDocs,
+  enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const ACCESS_CODE='valle';
+const K_UNLOCKED='anglog_unlocked', K_MIGRATED='anglog_migrated_fs_v1', K_TRIP='anglog_tripState';
+const K_ENTRIES_LEGACY='anglog_entries', K_BAITS_LEGACY='anglog_baitBox';
+const firebaseConfig={ apiKey:"AIzaSyCoaeE2C1dILXd30ndHeUa0rkhQGVniUJM", authDomain:"fish-ahoi.firebaseapp.com",
+  projectId:"fish-ahoi", storageBucket:"fish-ahoi.firebasestorage.app",
+  messagingSenderId:"404552637615", appId:"1:404552637615:web:0b1eacbf9a30bb2bd4485a" };
+const fbApp=initializeApp(firebaseConfig);
+const db=getFirestore(fbApp);
+const auth=getAuth(fbApp);
+try{ enableIndexedDbPersistence(db); }catch(e){}
+const entriesCol=collection(db,'entries'), baitsCol=collection(db,'baits');
+
+function checkLock(){
+  const ls=document.getElementById('lockScreen');
+  if(localStorage.getItem(K_UNLOCKED)==='1'){ ls.style.display='none'; boot(); return; }
+  ls.style.display='flex';
+  const input=document.getElementById('lockCode'),btn=document.getElementById('lockBtn'),err=document.getElementById('lockErr');
+  const tryUnlock=()=>{
+    if(input.value.trim().toLowerCase()===ACCESS_CODE){ localStorage.setItem(K_UNLOCKED,'1'); ls.style.display='none'; boot(); }
+    else err.textContent='Falscher Code.'; };
+  btn.addEventListener('click',tryUnlock);
+  input.addEventListener('keydown',e=>{ if(e.key==='Enter') tryUnlock(); }); }
+
 const BAIT_TYPES=['Gummifisch','Wobbler','Spinner','Andere'];
 const SPECIES=['Hecht','Zander','Barsch','Andere'];
 const ANGLER_PRESETS=['Sabrina','Heiko','Niclas','Laura'];
@@ -337,7 +432,6 @@ const WEIGHTS=[7.5,10,15,20,24,28,30,35,40];
 const LENGTHS=['Klein','Mittel','Groß'];
 const DEPTHS=(()=>{ const a=[]; for(let d=0.5;d<=30.001;d+=0.5) a.push(Math.round(d*10)/10); return a; })();
 const DEFAULT_WEIGHT=20, DEFAULT_LENGTH='Mittel';
-const SUGGEST_RADIUS_M=30;
 const CSV_COLS=['datetime','type','tripId','angler','technique','lat','lon','pressure','pressuresurface','pressuretrend3h',
   'airtemp','wind','winddir','rain','watertemp','depth','depthsource','baittype','baitcolor','baitlength','baitweight',
   'baitdurationmin','techdurationmin','bite','catch','species','fishlen','fishweight','notes'];
@@ -352,7 +446,7 @@ let setupSelected=[], setupTechnique=null, setupBaits={};
 let openTripId=null, lastAutoAt=Date.now();
 let timerHandle=null, wakeLock=null, lastAddedId=null;
 let diag={geoLast:'–',wxLast:'–'};
-let pendingEvent=null, currentSuggestion=null, showDepthLayer=false;
+let pendingEvent=null, showDepthLayer=false, seekLayer='heat', seekMapObj=null;
 const wheelVals={};
 
 // ================= FISCH-SILHOUETTEN =================
@@ -399,6 +493,8 @@ const store={ mode:'none',
   async set(k,v){ if(this.mode==='localStorage'){ try{ localStorage.setItem(k,v); return true; }catch(e){ toast('⚠ Speicher voll'); return false; } }
     if(this.mode==='sandbox'){ try{ await window.storage.set(k,v); return true; }catch(e){ return false; } }
     this._m[k]=v; return true; } };
+const saveTripState=()=>store.set(K_TRIP,JSON.stringify({trip,anglers,technique,waterTemp,paused,secondsLeft,
+  currentDepth,depthSource,lastWeight,lastLength,lastKnownLoc,lastKnownWx}));
 
 // ---------- utils ----------
 const pad=n=>n.toString().padStart(2,'0');
@@ -433,6 +529,7 @@ function snapDepth(v){ return Math.max(0.5,Math.min(30,Math.round(v*2)/2)); }
 document.addEventListener('visibilitychange',async()=>{
   if(document.visibilityState!=='visible'||!trip) return;
   requestWake();
+  if(!technique||technique.type!=='Schleppen') return;
   const gapMin=Math.round((Date.now()-lastAutoAt)/60000);
   if(!paused&&gapMin>=6){
     const s=await captureSnapshot();
@@ -440,12 +537,68 @@ document.addEventListener('visibilitychange',async()=>{
     lastAutoAt=Date.now(); secondsLeft=300;
     renderTripView(); toast(`⏱ Lücke von ${gapMin} min erkannt – Punkt nachgeholt`); } });
 
-// ---------- persistence ----------
-async function loadAll(){
+// ---------- persistence (Firestore = shared source of truth for entries & baits) ----------
+function fsSaveEntry(e){ setDoc(doc(entriesCol,e.id),e).catch(err=>toast('⚠ Sync-Fehler: '+err.message)); }
+function fsDeleteEntry(id){ deleteDoc(doc(entriesCol,id)).catch(err=>toast('⚠ Sync-Fehler: '+err.message)); }
+function fsSaveBait(b){ setDoc(doc(baitsCol,b.id),b).catch(err=>toast('⚠ Sync-Fehler: '+err.message)); }
+function fsDeleteBait(id){ deleteDoc(doc(baitsCol,id)).catch(err=>toast('⚠ Sync-Fehler: '+err.message)); }
+async function fsSaveEntriesBatch(list){
+  for(let i=0;i<list.length;i+=450){
+    const chunk=list.slice(i,i+450), b=writeBatch(db);
+    chunk.forEach(e=>b.set(doc(entriesCol,e.id),e));
+    try{ await b.commit(); }catch(err){ toast('⚠ Sync-Fehler: '+err.message); } } }
+async function fsDeleteAllEntries(){
+  const snap=await getDocsSafe(entriesCol);
+  for(let i=0;i<snap.length;i+=450){
+    const chunk=snap.slice(i,i+450), b=writeBatch(db);
+    chunk.forEach(d=>b.delete(d.ref));
+    try{ await b.commit(); }catch(err){ toast('⚠ Sync-Fehler: '+err.message); } } }
+async function fsDeleteTrip(tripId){
+  const snap=await getDocsSafe(query(entriesCol,where('tripId','==',tripId)));
+  const b=writeBatch(db); snap.forEach(d=>b.delete(d.ref));
+  try{ await b.commit(); }catch(err){ toast('⚠ Sync-Fehler: '+err.message); } }
+async function getDocsSafe(colOrQuery){
+  try{ const snap=await getDocs(colOrQuery); return snap.docs; }catch(e){ return []; } }
+
+function setSyncStatus(txt){ const el=document.getElementById('syncStatus'); if(el) el.textContent=txt; }
+
+async function migrateLegacyData(){
+  if(localStorage.getItem(K_MIGRATED)==='1') return;
+  try{
+    const rawE=localStorage.getItem(K_ENTRIES_LEGACY), rawB=localStorage.getItem(K_BAITS_LEGACY);
+    const legacyEntries=rawE?JSON.parse(rawE):[], legacyBaits=rawB?JSON.parse(rawB):[];
+    if(legacyEntries.length) await fsSaveEntriesBatch(legacyEntries);
+    for(const b of legacyBaits){ delete b.weight; delete b.length; await setDoc(doc(baitsCol,b.id),b); }
+  }catch(e){}
+  localStorage.setItem(K_MIGRATED,'1'); }
+
+async function uploadLocalBaits(){
+  let raw=null; try{ raw=localStorage.getItem(K_BAITS_LEGACY); }catch(e){}
+  let local=[]; try{ local=raw?JSON.parse(raw):[]; }catch(e){}
+  if(!Array.isArray(local)||!local.length){ toast('Keine lokalen Köder auf diesem Gerät gefunden'); return; }
+  const existing=new Set(baitBox.map(b=>(b.type||'')+'|'+(b.color||'').toLowerCase()));
+  let up=0,skip=0;
+  for(const b of local){
+    delete b.weight; delete b.length;
+    const key=(b.type||'')+'|'+(b.color||'').toLowerCase();
+    if(existing.has(key)){ skip++; continue; }
+    if(!b.id) b.id=uid();
+    try{ await setDoc(doc(baitsCol,b.id),b); existing.add(key); up++; }catch(e){} }
+  toast(up?`⬆ ${up} Köder hochgeladen${skip?` · ${skip} schon vorhanden`:''}`:`Alle lokalen Köder sind bereits synchronisiert (${skip})`); }
+
+async function uploadLocalTrips(){
+  let raw=null; try{ raw=localStorage.getItem(K_ENTRIES_LEGACY); }catch(e){}
+  let local=[]; try{ local=raw?JSON.parse(raw):[]; }catch(e){}
+  if(!Array.isArray(local)||!local.length){ toast('Keine lokalen Trips auf diesem Gerät gefunden'); return; }
+  const existingIds=new Set(entries.map(e=>e.id));
+  const toUpload=local.filter(e=>e&&e.id&&!existingIds.has(e.id));
+  if(!toUpload.length){ toast('Alle lokalen Trips sind bereits synchronisiert'); return; }
+  await fsSaveEntriesBatch(toUpload);
+  const tripCount=new Set(toUpload.map(e=>e.tripId)).size;
+  toast(`⬆ ${toUpload.length} Einträge aus ${tripCount} Trip(s) hochgeladen`); }
+
+async function boot(){
   store.init();
-  try{ const r=await store.get(K_ENTRIES); entries=r&&r.value?JSON.parse(r.value):[]; }catch(e){ entries=[]; }
-  try{ const r=await store.get(K_BAITS); baitBox=r&&r.value?JSON.parse(r.value):[]; }catch(e){ baitBox=[]; }
-  baitBox.forEach(b=>{ delete b.weight; delete b.length; });
   try{ const r=await store.get(K_TRIP);
     if(r&&r.value){ const s=JSON.parse(r.value); trip=s.trip; anglers=s.anglers||[]; technique=s.technique;
       waterTemp=s.waterTemp; paused=s.paused; secondsLeft=s.secondsLeft??300;
@@ -453,34 +606,40 @@ async function loadAll(){
       lastWeight=s.lastWeight||DEFAULT_WEIGHT; lastLength=s.lastLength||DEFAULT_LENGTH;
       lastKnownLoc=s.lastKnownLoc||lastKnownLoc; lastKnownWx=Object.assign(lastKnownWx,s.lastKnownWx||{});
       if(technique&&technique.type==='Stehend') technique.type='Werfen'; } }catch(e){}
-  renderDiag(); renderAnglerChips(); renderSetupBaits(); renderBaitBox();
+  renderDiag(); renderAnglerChips(); renderSetupBaits();
   renderTripList(); renderStats(); renderTripView();
-  if(trip){ startTimer(); requestWake(); } }
-const saveEntries=()=>store.set(K_ENTRIES,JSON.stringify(entries));
-const saveBaits=()=>store.set(K_BAITS,JSON.stringify(baitBox));
-const saveTripState=()=>store.set(K_TRIP,JSON.stringify({trip,anglers,technique,waterTemp,paused,secondsLeft,
-  currentDepth,depthSource,lastWeight,lastLength,lastKnownLoc,lastKnownWx}));
+  if(trip){ startTimer(); requestWake(); }
+  try{
+    await signInAnonymously(auth);
+    setSyncStatus('Verbunden · Köder & Trips synchronisieren automatisch');
+    await migrateLegacyData();
+  }catch(e){ setSyncStatus('Offline – wird synchronisiert, sobald online'); }
+  onSnapshot(entriesCol,snap=>{
+    entries=snap.docs.map(d=>d.data()).sort((a,b)=>b.datetime.localeCompare(a.datetime));
+    refreshLists(); if(openTripId) renderTripDetail(openTripId);
+  },()=>setSyncStatus('Offline – wird synchronisiert, sobald online'));
+  onSnapshot(baitsCol,snap=>{
+    baitBox=snap.docs.map(d=>d.data());
+    renderBaitBox(); renderSetupBaits();
+  },()=>setSyncStatus('Offline – wird synchronisiert, sobald online')); }
 
-document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.navItem').forEach(item=>item.addEventListener('click',()=>{
+  document.querySelectorAll('.navItem').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-  tab.classList.add('active'); document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
-  if(tab.dataset.tab==='stats') renderStats();
-  if(tab.dataset.tab==='trips'){ openTripId=null; renderTripList(); } }));
+  item.classList.add('active'); document.getElementById('tab-'+item.dataset.tab).classList.add('active');
+  closeNav();
+  if(item.dataset.tab==='stats') renderStats();
+  if(item.dataset.tab==='trips'){ openTripId=null; renderTripList(); }
+  if(item.dataset.tab==='seekarte') renderSeekarte(); }));
+function openNav(){ document.getElementById('navPanel').classList.add('open'); }
+function closeNav(){ document.getElementById('navPanel').classList.remove('open'); }
+document.getElementById('menuBtn').addEventListener('click',openNav);
+document.getElementById('navScrim').addEventListener('click',closeNav);
 
 // ================= TIEFENKARTE =================
 function depthPoints(){
   return entries.filter(e=>num(e.depth)!=null&&num(e.lat)!=null&&num(e.lon)!=null)
     .map(e=>({lat:num(e.lat),lon:num(e.lon),depth:num(e.depth),dt:e.datetime,src:e.depthsource||''})); }
-function suggestDepth(loc){
-  if(!loc||loc.lat==null) return null;
-  const pts=depthPoints(); if(!pts.length) return null;
-  let best=null,bd=Infinity;
-  pts.forEach(p=>{ const d=haversine(loc,p); if(d<bd){ bd=d; best=p; } });
-  if(!best||bd>SUGGEST_RADIUS_M) return null;
-  const near=pts.filter(p=>haversine(loc,p)<=SUGGEST_RADIUS_M);
-  const avg=near.reduce((a,b)=>a+b.depth,0)/near.length;
-  return { depth:snapDepth(avg), dist:Math.round(bd), n:near.length }; }
 function depthColor(d){
   return d<2?'#8FD3EF':d<4?'#57B0DC':d<6?'#2E86C1':d<8?'#1F618D':d<12?'#154360':'#0B2A3F'; }
 
@@ -488,24 +647,27 @@ function renderDepthPanel(){
   const v=document.getElementById('depthVal'); if(!v||!trip) return;
   v.innerHTML = currentDepth!=null ? `${fmtD(currentDepth)}<span>m</span>` : `–<span>m</span>`;
   const s=document.getElementById('depthSrc');
-  s.textContent = !currentDepth?'nicht gesetzt':depthSource==='karte'?'aus Tiefenkarte':depthSource==='manuell'?'gemessen':'mitgeführt';
-  const sg=document.getElementById('depthSuggest');
-  currentSuggestion=suggestDepth(lastKnownLoc);
-  if(currentSuggestion&&(currentDepth==null||Math.abs(currentSuggestion.depth-currentDepth)>=0.5)){
-    sg.innerHTML=`<div class="depth-sugg" id="depthSuggBtn">
-      <span>Tiefenkarte: <b>${fmtD(currentSuggestion.depth)} m</b> · ${currentSuggestion.n} Messung(en), ${currentSuggestion.dist} m entfernt</span>
-      <span>übernehmen →</span></div>`;
-    document.getElementById('depthSuggBtn').addEventListener('click',()=>{
-      currentDepth=currentSuggestion.depth; depthSource='karte'; vibrate(15);
-      saveTripState(); renderDepthPanel(); toast('Tiefe aus Karte übernommen'); });
-  } else sg.innerHTML=''; }
+  s.textContent = !currentDepth?'nicht gesetzt':depthSource==='manuell'?'gemessen':'mitgeführt'; }
+
+let depthLogTimer=null;
+function scheduleDepthLog(){ clearTimeout(depthLogTimer); depthLogTimer=setTimeout(logDepthPoint,900); }
+async function logDepthPoint(){
+  if(!trip||currentDepth==null) return;
+  const d=currentDepth;
+  const g=await getGeo(); if(g) lastKnownLoc=g;
+  const loc=g||lastKnownLoc;
+  if(d!==currentDepth) return; // Wert wurde inzwischen erneut geändert – nächster Timer übernimmt
+  addEntry(makeEntry({datetime:nowLocalISO(),lat:loc?.lat??'',lon:loc?.lon??'',
+    pressure:'',pressuresurface:'',pressuretrend3h:'',airtemp:'',wind:'',winddir:'',rain:''},
+    'tiefe',{depth:d,depthsource:'manuell'}));
+  vibrate(15); toast(`Tiefe geloggt: ${fmtD(d)} m`); }
 
 document.querySelector('.depth-ctrl').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.id==='depthSet'){ openDepthPicker(); return; }
   const d=Number(b.dataset.d);
   currentDepth=snapDepth((currentDepth??5)+d); depthSource='manuell';
-  vibrate(10); saveTripState(); renderDepthPanel(); });
+  vibrate(10); saveTripState(); renderDepthPanel(); scheduleDepthLog(); });
 
 function openDepthPicker(){
   const voiceOk=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
@@ -519,7 +681,7 @@ function openDepthPicker(){
   document.getElementById('dpCancel').addEventListener('click',closeModal);
   document.getElementById('dpOk').addEventListener('click',()=>{
     currentDepth=readWheel('dPick'); depthSource='manuell';
-    saveTripState(); closeModal(); renderDepthPanel(); toast(`Tiefe: ${fmtD(currentDepth)} m`); });
+    saveTripState(); closeModal(); renderDepthPanel(); scheduleDepthLog(); });
   if(voiceOk){
     const btn=document.getElementById('dvBtn'),out=document.getElementById('dvOut');
     btn.addEventListener('click',()=>{
@@ -530,7 +692,7 @@ function openDepthPicker(){
         const txt=ev.results[0][0].transcript; const d=parseDepthCommand(txt);
         if(d==null){ out.textContent='Nicht verstanden: „'+txt+'"'; return; }
         currentDepth=d; depthSource='manuell'; vibrate(30);
-        saveTripState(); closeModal(); renderDepthPanel(); toast(`Tiefe: ${fmtD(d)} m`); };
+        saveTripState(); closeModal(); renderDepthPanel(); scheduleDepthLog(); };
       rec.onerror=ev=>{ out.textContent=ev.error==='network'?'Kein Netz – bitte scrollen.':'Fehler: '+ev.error; };
       rec.onend=()=>{ btn.classList.remove('listening'); btn.textContent='🎤 „Tiefe sechs komma fünf"'; };
       try{ rec.start(); }catch(e){ out.textContent='Start fehlgeschlagen.'; } }); } }
@@ -586,14 +748,11 @@ async function captureSnapshot(fixedLoc,fixedTime){
   if(!loc){ const g=await getGeo(); if(g) lastKnownLoc=g; loc=g||lastKnownLoc; }
   let wx=null;
   if(loc&&loc.lat!=null){ wx=await getWeather(loc.lat,loc.lon); if(wx) lastKnownWx=wx; } else diag.wxLast='– (kein Standort)';
-  const w=wx||lastKnownWx; renderDiag(); saveTripState(); updatePressLabel(w);
+  const w=wx||lastKnownWx; renderDiag(); saveTripState();
   if(trip) renderDepthPanel();
   return { datetime:fixedTime||nowLocalISO(), lat:loc?.lat??'', lon:loc?.lon??'',
     pressure:w.pressure??'', pressuresurface:w.pressuresurface??'', pressuretrend3h:w.pressuretrend3h??'',
     airtemp:w.airtemp??'', wind:w.wind??'', winddir:w.winddir??'', rain:w.rain??'' }; }
-function updatePressLabel(w){
-  const pl=document.getElementById('pressLabel'); if(!pl||!trip) return;
-  pl.textContent = w.pressure!=null ? w.pressure+' hPa'+(w.pressuretrend3h!=null?` (3h ${w.pressuretrend3h>0?'+':''}${w.pressuretrend3h})`:'') : '–'; }
 function renderDiag(){
   const b=document.getElementById('diagBox'); if(!b) return;
   const sc=store.mode==='memory'?'err':(store.mode==='localStorage'?'ok':'warn');
@@ -661,7 +820,7 @@ function editBait(id){
     document.getElementById('bTypeCustom').style.display=b.type==='Andere'?'block':'none'; }));
   document.getElementById('bCancel').addEventListener('click',closeModal);
   if(id) document.getElementById('bDel').addEventListener('click',()=>{
-    baitBox=baitBox.filter(x=>x.id!==id); saveBaits(); renderBaitBox(); renderSetupBaits(); closeModal(); toast('Köder gelöscht'); });
+    baitBox=baitBox.filter(x=>x.id!==id); fsDeleteBait(id); renderBaitBox(); renderSetupBaits(); closeModal(); toast('Köder gelöscht'); });
   document.getElementById('bSave').addEventListener('click',()=>{
     let type=b.type;
     if(type==='Andere'){ const c=document.getElementById('bTypeCustom').value.trim(); if(c) type=c; }
@@ -669,7 +828,7 @@ function editBait(id){
     if(!rec.color&&!rec.type){ toast('Bitte Typ oder Modell angeben'); return; }
     const i=baitBox.findIndex(x=>x.id===rec.id);
     if(i>=0) baitBox[i]=rec; else baitBox.push(rec);
-    saveBaits(); renderBaitBox(); renderSetupBaits(); closeModal(); toast('Köder gespeichert'); }); }
+    fsSaveBait(rec); renderBaitBox(); renderSetupBaits(); closeModal(); toast('Köder gespeichert'); }); }
 
 // ---------- Rad ----------
 function wheelHtml(id,values,unit){
@@ -701,7 +860,9 @@ function openBaitPicker(title,onPick){
         <div class="bait-tile add" id="pickNew"><div style="font-size:26px;">＋</div>Neu<br>anlegen</div></div></div>
     <button class="btn" id="pickCancel">Abbrechen</button>`);
   document.querySelectorAll('#pickGrid .bait-tile[data-bid]').forEach(t=>t.addEventListener('click',()=>{
-    const b=baitBox.find(x=>x.id===t.dataset.bid); askBaitDetails(b,onPick,title); }));
+    const b=baitBox.find(x=>x.id===t.dataset.bid);
+    if(b.type==='Wobbler'){ closeModal(); onPick(Object.assign({},b,{length:'',weight:''})); return; }
+    askBaitDetails(b,onPick,title); }));
   document.getElementById('pickNew').addEventListener('click',()=>{ closeModal(); editBait(null); });
   document.getElementById('pickCancel').addEventListener('click',closeModal);
   if(voiceOk) setupVoice(onPick,title); }
@@ -738,6 +899,7 @@ function setupVoice(onPick,backTitle){
       const r=parseBaitCommand(txt);
       if(!r){ out.textContent='Nicht zuordenbar: „'+txt+'" – bitte antippen.'; return; }
       vibrate(30);
+      if(r.type==='Wobbler'){ closeModal(); onPick(Object.assign({},r,{length:'',weight:''})); return; }
       const needsWeight=r.type==='Gummifisch'&&!r.weight;
       if(r.length&&!needsWeight){ lastLength=r.length; if(r.weight) lastWeight=r.weight;
         saveTripState(); closeModal(); onPick(r); }
@@ -817,14 +979,12 @@ document.getElementById('startTripBtn').addEventListener('click',async ev=>{
   anglers=setupSelected.map(n=>({name:n,bait:Object.assign({},setupBaits[n],{start:now})}));
   paused=false; secondsLeft=300; lastAutoAt=Date.now();
   currentDepth=null; depthSource='';
-  const sg=suggestDepth(lastKnownLoc);
-  if(sg){ currentDepth=sg.depth; depthSource='karte'; }
   anglers.forEach(a=>addEntry(makeEntry(snap,'start',{angler:a.name,baittype:a.bait.type,baitcolor:a.bait.color,
     baitlength:a.bait.length||'',baitweight:a.bait.weight})));
   await saveTripState(); requestWake();
   btn.disabled=false; btn.textContent='▶ Trip starten';
   renderTripView(); startTimer(); toast('▶ Trip gestartet');
-  if(!currentDepth) setTimeout(()=>toast('Tipp: Wassertiefe oben setzen – sie läuft dann mit'),2800); });
+  setTimeout(()=>toast('⚠ Bildschirm bitte anlassen, sonst pausiert das Logging'),2800); });
 
 // ---------- entries ----------
 function makeEntry(snap,type,extra){
@@ -835,9 +995,9 @@ function makeEntry(snap,type,extra){
     depth: currentDepth??'', depthsource: currentDepth!=null?(depthSource==='manuell'?'mitgefuehrt':depthSource):'',
     baittype:'', baitcolor:'', baitlength:'', baitweight:'', baitdurationmin:'', techdurationmin:'',
     bite:0, catch:0, species:'', fishlen:'', fishweight:'', notes:'' }, extra||{}); }
-function addEntry(e){ entries.unshift(e); lastAddedId=e.id; saveEntries(); refreshLists(); }
-function undoLast(){ if(!lastAddedId) return; entries=entries.filter(e=>e.id!==lastAddedId); lastAddedId=null;
-  saveEntries(); refreshLists(); toast('Rückgängig gemacht'); }
+function addEntry(e){ entries.unshift(e); lastAddedId=e.id; fsSaveEntry(e); refreshLists(); }
+function undoLast(){ if(!lastAddedId) return; const id=lastAddedId; entries=entries.filter(e=>e.id!==id); lastAddedId=null;
+  fsDeleteEntry(id); refreshLists(); toast('Rückgängig gemacht'); }
 function refreshLists(){ renderRecent(); renderTripList(); renderStats(); }
 
 // ---------- active view ----------
@@ -845,10 +1005,8 @@ function renderTripView(){
   const su=document.getElementById('setupView'),av=document.getElementById('activeView');
   if(trip){
     su.style.display='none'; av.style.display='block';
-    document.getElementById('tripStartedAt').textContent=fmtClock(trip.startTime);
-    document.getElementById('lastFixLabel').textContent=lastKnownLoc.lat!=null
-      ? lastKnownLoc.lat.toFixed(4)+', '+lastKnownLoc.lon.toFixed(4):'kein Fix';
-    updatePressLabel(lastKnownWx); renderDepthPanel();
+    document.getElementById('timerBar').style.display=technique&&technique.type==='Schleppen'?'flex':'none';
+    renderDepthPanel();
     document.querySelectorAll('#techChipsActive .chip').forEach(c=>c.classList.toggle('sel',technique&&c.dataset.val===technique.type));
     document.getElementById('a-watertemp').value=waterTemp??'';
     const ac=document.getElementById('anglerCards');
@@ -867,6 +1025,7 @@ document.getElementById('techChipsActive').addEventListener('click',async e=>{
   const old=technique,dur=old?Math.round((Date.now()-old.start)/60000):'';
   const snap={datetime:nowLocalISO(),lat:lastKnownLoc.lat??'',lon:lastKnownLoc.lon??'',pressure:'',airtemp:'',wind:'',winddir:'',rain:''};
   technique={type:nv,start:Date.now()};
+  if(nv==='Schleppen'){ secondsLeft=300; lastAutoAt=Date.now(); }
   addEntry(makeEntry(snap,'technikwechsel',{technique:old?old.type:'',techdurationmin:dur,notes:'neue Technik: '+nv}));
   await saveTripState(); renderTripView(); vibrate(20); toast('Technik: '+nv); });
 function correctActiveBait(name){
@@ -876,7 +1035,8 @@ function correctActiveBait(name){
     const last=entries.find(e=>e.tripId===trip.id&&e.angler===name&&(e.type==='koederwechsel'||e.type==='start'));
     if(last&&last.type==='start'){ last.baittype=b.type; last.baitcolor=b.color; last.baitlength=b.length||''; last.baitweight=b.weight; }
     else if(last&&last.type==='koederwechsel'){ last.notes='neuer Köder: '+b.type+' '+baitLabel(b); }
-    saveEntries(); saveTripState(); renderTripView(); toast('Köder korrigiert'); }); }
+    if(last) fsSaveEntry(last);
+    saveTripState(); renderTripView(); toast('Köder korrigiert'); }); }
 function updatePauseButton(){
   const b=document.getElementById('pauseBtn');
   b.classList.toggle('pause-on',paused);
@@ -890,7 +1050,7 @@ function updateClockDisplay(){
 function startTimer(){
   clearInterval(timerHandle);
   timerHandle=setInterval(async()=>{
-    if(!trip||paused) return;
+    if(!trip||paused||!technique||technique.type!=='Schleppen') return;
     secondsLeft--;
     if(secondsLeft<=0){ secondsLeft=300; lastAutoAt=Date.now();
       const s=await captureSnapshot(); addEntry(makeEntry(s,'auto')); renderTripView(); }
@@ -901,8 +1061,8 @@ document.getElementById('actionGrid').addEventListener('click',e=>{
   const b=e.target.closest('.action-btn'); if(!b) return;
   const a=b.dataset.action;
   if(a==='pause'){ togglePause(); return; }
-  if(a==='ende'){ confirmEnd(); return; }
   beginEvent(a); });
+document.getElementById('endTripBtn').addEventListener('click',confirmEnd);
 function beginEvent(action){
   pendingEvent={ datetime:nowLocalISO(), loc:null, status:'pending', t0:Date.now() };
   vibrate(15);
@@ -1066,11 +1226,11 @@ window.openEntryEditor=function(id){
   const br=document.getElementById('eBaitRow');
   if(br) br.addEventListener('click',()=>openBaitPicker('Köder korrigieren',b=>{
     e.baittype=b.type; e.baitcolor=b.color; e.baitlength=b.length||''; e.baitweight=b.weight;
-    saveEntries(); refreshLists(); if(openTripId) renderTripDetail(openTripId);
+    fsSaveEntry(e); refreshLists(); if(openTripId) renderTripDetail(openTripId);
     closeModal(); toast('Köder korrigiert'); }));
   document.getElementById('eCancel').addEventListener('click',closeModal);
   document.getElementById('eDel').addEventListener('click',()=>{
-    entries=entries.filter(x=>x.id!==id); saveEntries(); refreshLists();
+    entries=entries.filter(x=>x.id!==id); fsDeleteEntry(id); refreshLists();
     if(openTripId) renderTripDetail(openTripId); closeModal(); toast('Eintrag gelöscht'); });
   document.getElementById('eSave').addEventListener('click',()=>{
     if(ang){ const s=ang.querySelector('.chip.sel'); if(s) e.angler=s.dataset.val; }
@@ -1079,12 +1239,12 @@ window.openEntryEditor=function(id){
     const nd=document.getElementById('eDepth').value;
     if(nd!==String(e.depth)){ e.depth=nd; e.depthsource=nd?'manuell':''; }
     e.notes=document.getElementById('eNotes').value;
-    saveEntries(); refreshLists(); if(openTripId) renderTripDetail(openTripId);
+    fsSaveEntry(e); refreshLists(); if(openTripId) renderTripDetail(openTripId);
     closeModal(); toast('Eintrag aktualisiert'); }); };
 
 // ================= LISTEN =================
 const TYPE_LABEL={start:'Start',auto:'Auto',biss:'Biss',fisch:'Fang',koederwechsel:'Köderwechsel',
-  technikwechsel:'Technik',pause:'Pause',fortsetzung:'Weiter',ende:'Ende'};
+  technikwechsel:'Technik',pause:'Pause',fortsetzung:'Weiter',ende:'Ende',tiefe:'Tiefe'};
 function baitCell(e){
   if(!e.baittype) return '';
   const p=[e.baittype]; if(e.baitcolor) p.push(e.baitcolor);
@@ -1262,6 +1422,47 @@ async function renderRealMap(pts){
     const n=document.getElementById('mapNote');
     if(n) n.insertAdjacentHTML('beforeend','<span>Karte offline – Streckenzeichnung</span>'); } }
 
+// ================= SEEKARTE (global) =================
+let heatPromise=null;
+function loadLeafletHeat(){
+  if(window.L&&L.heatLayer) return Promise.resolve();
+  if(heatPromise) return heatPromise;
+  heatPromise=new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src='https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js';
+    s.onload=()=>res(); s.onerror=()=>rej(new Error('leaflet.heat nicht ladbar')); document.head.appendChild(s);
+    setTimeout(()=>rej(new Error('Zeitüberschreitung')),9000); });
+  return heatPromise; }
+document.getElementById('seekHeat').addEventListener('click',()=>{ seekLayer='heat'; renderSeekarte(); });
+document.getElementById('seekDepth').addEventListener('click',()=>{ seekLayer='depth'; renderSeekarte(); });
+async function renderSeekarte(){
+  document.getElementById('seekHeat').classList.toggle('sel',seekLayer==='heat');
+  document.getElementById('seekDepth').classList.toggle('sel',seekLayer==='depth');
+  const box=document.getElementById('seekMapBox');
+  try{
+    await loadLeaflet();
+    if(seekLayer==='heat') await loadLeafletHeat();
+    if(seekMapObj){ try{ seekMapObj.remove(); }catch(e){} seekMapObj=null; }
+    box.innerHTML='<div id="seekLeafMap" style="height:340px;"></div>';
+    seekMapObj=L.map('seekLeafMap',{scrollWheelZoom:false});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,attribution:'© OpenStreetMap-Mitwirkende'}).addTo(seekMapObj);
+    let bounds=null;
+    if(seekLayer==='heat'){
+      const pts=entries.filter(e=>(e.type==='biss'||e.type==='fisch')&&num(e.lat)!=null&&num(e.lon)!=null)
+        .map(e=>[num(e.lat),num(e.lon),e.type==='fisch'?1:0.5]);
+      if(pts.length){ L.heatLayer(pts,{radius:26,blur:22,maxZoom:17}).addTo(seekMapObj);
+        bounds=L.latLngBounds(pts.map(p=>[p[0],p[1]])); }
+    } else {
+      const pts=depthPoints();
+      if(pts.length){ pts.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:5,stroke:false,fillColor:depthColor(p.depth),fillOpacity:0.85})
+        .addTo(seekMapObj).bindPopup(`${fmtD(p.depth)} m<br>${fmtDT(p.dt)}`));
+        bounds=L.latLngBounds(pts.map(p=>[p.lat,p.lon])); }
+    }
+    if(bounds) seekMapObj.fitBounds(bounds,{padding:[26,26]});
+    else seekMapObj.setView([lastKnownLoc.lat||51,lastKnownLoc.lon||10],lastKnownLoc.lat?12:4);
+    setTimeout(()=>seekMapObj.invalidateSize(),120);
+  }catch(e){ box.innerHTML='<div class="empty" style="padding:26px 0;">Karte konnte nicht geladen werden (offline?).</div>'; } }
+
 function renderTripDetail(id){
   const t=getTrips().find(x=>x.id===id);
   const el=document.getElementById('tripDetailView');
@@ -1311,10 +1512,25 @@ function renderTripDetail(id){
       <div class="kv"><span>Luftdruck (Meereshöhe)</span><b>${st.pressMin!=null?st.pressMin+'–'+st.pressMax+' hPa':'–'}</b></div></div>
     <div class="card"><h2>Ereignisse</h2>
       ${t.entries.filter(e=>e.type!=='auto').sort((a,b)=>b.datetime.localeCompare(a.datetime)).map(entryHtml).join('')
-        ||'<div class="empty" style="padding:14px 0;">Keine Ereignisse</div>'}</div>`;
-  renderRealMap(st.pts); }
+        ||'<div class="empty" style="padding:14px 0;">Keine Ereignisse</div>'}</div>
+    ${t.live?'':`<button class="btn" id="tripDelBtn" style="margin-top:4px;border-style:dashed;color:var(--rust);border-color:var(--rust);">🗑 Trip löschen</button>`}`;
+  renderRealMap(st.pts);
+  const delBtn=document.getElementById('tripDelBtn');
+  if(delBtn) delBtn.addEventListener('click',()=>confirmDeleteTrip(t.id)); }
+
+function confirmDeleteTrip(id){
+  openModal(`<h3>Trip löschen?</h3><div class="card">
+    <p style="margin:0;font-size:13.5px;color:var(--text-dim);font-weight:600;">Alle Einträge dieses Trips werden unwiderruflich gelöscht – auf allen Geräten.</p></div>
+    <div class="confirm-row"><button class="btn yes" id="tdYes">Ja, löschen</button>
+    <button class="btn" id="tdNo">Abbrechen</button></div>`);
+  document.getElementById('tdNo').addEventListener('click',closeModal);
+  document.getElementById('tdYes').addEventListener('click',async()=>{
+    closeModal(); entries=entries.filter(e=>e.tripId!==id); await fsDeleteTrip(id);
+    openTripId=null; refreshLists(); window.scrollTo(0,0); toast('Trip gelöscht'); }); }
 
 // ---------- CSV ----------
+document.getElementById('uploadBaitsBtn').addEventListener('click',uploadLocalBaits);
+document.getElementById('uploadTripsBtn').addEventListener('click',uploadLocalTrips);
 document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('csvInput').click());
 document.getElementById('csvInput').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -1352,7 +1568,7 @@ function importCsv(text){
       newOnes.push(rec); added++; }
     if(added===0){ toast(`Nichts importiert – ${dupes} Duplikate`); return; }
     entries=[...newOnes,...entries].sort((a,b)=>b.datetime.localeCompare(a.datetime));
-    saveEntries(); refreshLists();
+    fsSaveEntriesBatch(newOnes); refreshLists();
     const tripCount=new Set(newOnes.map(r=>r.tripId)).size;
     const noSp=newOnes.filter(r=>r.type==='fisch'&&!r.species).length;
     toast(`✓ ${added} Einträge, ${tripCount} Trip(s) importiert${dupes?` · ${dupes} Duplikate`:''}`);
@@ -1369,8 +1585,8 @@ document.getElementById('exportBtn').addEventListener('click',()=>{
 document.getElementById('clearBtn').addEventListener('click',()=>{ if(entries.length===0) return;
   document.getElementById('clearConfirm').style.display='flex'; });
 document.getElementById('clearNo').addEventListener('click',()=>{ document.getElementById('clearConfirm').style.display='none'; });
-document.getElementById('clearYes').addEventListener('click',async()=>{ entries=[]; await saveEntries();
-  refreshLists(); document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht'); });
+document.getElementById('clearYes').addEventListener('click',async()=>{ entries=[]; await fsDeleteAllEntries();
+  refreshLists(); document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht (auf allen Geräten)'); });
 
 // ---------- Statistik ----------
 function listBlock(id,arr,suf){
@@ -1406,7 +1622,7 @@ function renderStats(){
   listBlock('topLengths',cnt('baitlength'),' Fänge');
   listBlock('topAnglers',cnt('angler'),' Fänge'); }
 
-loadAll();
+checkLock();
 </script>
 </body>
 </html>
