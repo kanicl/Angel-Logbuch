@@ -376,18 +376,12 @@
   </section>
 
   <section id="tab-stats">
-    <div class="stats-grid">
-      <div class="stat"><div class="n" id="statTrips">0</div><div class="l">Trips</div></div>
-      <div class="stat"><div class="n" id="statCatches">0</div><div class="l">Fänge</div></div>
-      <div class="stat"><div class="n" id="statBites">0</div><div class="l">Bisse</div></div>
-      <div class="stat"><div class="n" id="statRate">0%</div><div class="l">Verwertung</div></div>
+    <div class="seek-toggle">
+      <div class="chip sel" id="statSeason">Saison <span id="statSeasonYear"></span></div>
+      <div class="chip" id="statAllYears">Alle Jahre</div>
     </div>
-    <div class="card"><h2>Tiefenkarte</h2><div id="depthStats" class="diag"></div></div>
-    <div class="card"><h2>Top Fischarten</h2><div id="topSpecies" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
-    <div class="card"><h2>Fangtiefe (nach Fängen)</h2><div id="topDepths" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
-    <div class="card"><h2>Top Köder (nach Fängen)</h2><div id="topBaits" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
-    <div class="card"><h2>Köderlänge (nach Fängen)</h2><div id="topLengths" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
-    <div class="card"><h2>Fänge pro Angler</h2><div id="topAnglers" class="empty" style="padding:18px 0;">Noch keine Daten</div></div>
+    <div id="statSeasonView"></div>
+    <div id="statAllYearsView" style="display:none;"></div>
   </section>
 </main>
 
@@ -434,7 +428,41 @@ const DEPTHS=(()=>{ const a=[]; for(let d=0.5;d<=30.001;d+=0.5) a.push(Math.roun
 const DEFAULT_WEIGHT=20, DEFAULT_LENGTH='Mittel';
 const CSV_COLS=['datetime','type','tripId','angler','technique','lat','lon','pressure','pressuresurface','pressuretrend3h',
   'airtemp','wind','winddir','rain','watertemp','depth','depthsource','baittype','baitcolor','baitlength','baitweight',
-  'baitdurationmin','techdurationmin','bite','catch','species','fishlen','fishweight','notes'];
+  'newbaittype','newbaitcolor','newbaitlength','newbaitweight',
+  'baitdurationmin','techdurationmin','bite','catch','kept','species','fishlen','fishweight','notes'];
+
+// ================= ARCHIV (Fischliste.xlsx 2021–2026) =================
+// Jahres-Aggregate aus der bis 06.08.2026 parallel geführten Excel. Nur Summen –
+// keine Einzelfänge, daher ausschließlich für Jahresvergleiche, nie für Köder-/Zeit-/Tiefenanalysen.
+// 2026 hat einen cutoff: die Excel-Zahlen enthalten die App-Trips vom 04.–05.08. bereits,
+// deshalb zählen nur App-Einträge NACH dem cutoff zusätzlich (sonst doppelt).
+const ARCHIVE={
+  2021:{ anglers:['Sabrina','Heiko','Niclas','Anton','Philip'], species:{
+    Zander:{ counts:{Sabrina:15,Heiko:10,Niclas:17,Anton:1,Philip:28}, kept:15, max:{cm:69,who:['Sabrina']} },
+    Hecht: { counts:{Sabrina:3, Heiko:1, Niclas:5, Anton:0,Philip:3 }, kept:0,  max:{cm:122,who:['Niclas']} },
+    Barsch:{ counts:{Sabrina:1, Heiko:0, Niclas:16,Anton:0,Philip:0 }, kept:0,  max:{cm:36,who:['Niclas']} } } },
+  2022:{ anglers:['Sabrina','Heiko','Niclas','Ilka','Tim'], species:{
+    Zander:{ counts:{Sabrina:19,Heiko:18,Niclas:15,Ilka:0,Tim:0}, kept:13, max:{cm:72,who:['Niclas']} },
+    Hecht: { counts:{Sabrina:7, Heiko:2, Niclas:7, Ilka:1,Tim:0}, kept:1,  max:{cm:73,who:['Niclas']} },
+    Barsch:{ counts:{Sabrina:2, Heiko:2, Niclas:13,Ilka:0,Tim:0}, kept:0,  max:{cm:36,who:['Niclas']} } } },
+  2023:{ anglers:['Sabrina','Heiko','Niclas','Tim','Lea'], species:{
+    Zander:{ counts:{Sabrina:6,Heiko:3,Niclas:4, Tim:0,Lea:1}, kept:1, max:{cm:53,who:['Niclas']} },
+    Hecht: { counts:{Sabrina:2,Heiko:0,Niclas:11,Tim:1,Lea:1}, kept:1, max:{cm:73,who:['Lea']} },
+    Barsch:{ counts:{Sabrina:3,Heiko:0,Niclas:10,Tim:1,Lea:0}, kept:0, max:{cm:33,who:['Niclas']} } } },
+  2024:{ anglers:['Sabrina','Heiko','Niclas','Lea'], species:{
+    Zander:{ counts:{Sabrina:19,Heiko:11,Niclas:10,Lea:1}, kept:13, max:{cm:61,who:['Sabrina']} },
+    Hecht: { counts:{Sabrina:4, Heiko:5, Niclas:14,Lea:0}, kept:1,  max:{cm:81,who:['Sabrina']} },
+    Barsch:{ counts:{Sabrina:7, Heiko:5, Niclas:35,Lea:0}, kept:10, max:{cm:38,who:['Niclas']} } } },
+  2025:{ anglers:['Sabrina','Heiko','Niclas','Lea'], species:{
+    Zander:{ counts:{Sabrina:15,Heiko:8,Niclas:20,Lea:0}, kept:23, max:{cm:67,who:['Niclas','Sabrina']} },
+    Hecht: { counts:{Sabrina:12,Heiko:6,Niclas:21,Lea:0}, kept:0,  max:{cm:93,who:['Niclas']} },
+    Barsch:{ counts:{Sabrina:5, Heiko:2, Niclas:6, Lea:0}, kept:4,  max:{cm:46,who:['Sabrina']} } } },
+  2026:{ anglers:['Sabrina','Heiko','Niclas','Lea'], cutoff:'2026-08-05T23:59', species:{
+    Zander:{ counts:{Sabrina:3,Heiko:5,Niclas:7,Lea:0}, kept:4, max:{cm:56,who:['Sabrina']} },
+    Hecht: { counts:{Sabrina:2,Heiko:1,Niclas:0,Lea:0}, kept:0, max:{cm:73,who:['Sabrina']} },
+    Barsch:{ counts:{Sabrina:1,Heiko:1,Niclas:0,Lea:0}, kept:1, max:{cm:35,who:['Sabrina']} } } }
+};
+const ARCHIVE_YEARS=Object.keys(ARCHIVE).map(Number).sort((a,b)=>a-b);
 
 let entries=[], trip=null, anglers=[], technique=null, baitBox=[];
 let waterTemp=null, paused=false, secondsLeft=300;
@@ -607,7 +635,7 @@ async function boot(){
       lastKnownLoc=s.lastKnownLoc||lastKnownLoc; lastKnownWx=Object.assign(lastKnownWx,s.lastKnownWx||{});
       if(technique&&technique.type==='Stehend') technique.type='Werfen'; } }catch(e){}
   renderDiag(); renderAnglerChips(); renderSetupBaits();
-  renderTripList(); renderStats(); renderTripView();
+  renderTripList(); renderStatsTab(); renderTripView();
   if(trip){ startTimer(); requestWake(); }
   try{
     await signInAnonymously(auth);
@@ -628,7 +656,7 @@ document.querySelectorAll('.navItem').forEach(item=>item.addEventListener('click
   document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
   item.classList.add('active'); document.getElementById('tab-'+item.dataset.tab).classList.add('active');
   closeNav();
-  if(item.dataset.tab==='stats') renderStats();
+  if(item.dataset.tab==='stats') renderStatsTab();
   if(item.dataset.tab==='trips'){ openTripId=null; renderTripList(); }
   if(item.dataset.tab==='seekarte') renderSeekarte(); }));
 function openNav(){ document.getElementById('navPanel').classList.add('open'); }
@@ -993,12 +1021,14 @@ function makeEntry(snap,type,extra){
     pressuretrend3h:snap.pressuretrend3h??'', airtemp:snap.airtemp, wind:snap.wind, winddir:snap.winddir, rain:snap.rain,
     watertemp:waterTemp??'', technique:technique?technique.type:'', angler:'',
     depth: currentDepth??'', depthsource: currentDepth!=null?(depthSource==='manuell'?'mitgefuehrt':depthSource):'',
-    baittype:'', baitcolor:'', baitlength:'', baitweight:'', baitdurationmin:'', techdurationmin:'',
-    bite:0, catch:0, species:'', fishlen:'', fishweight:'', notes:'' }, extra||{}); }
+    baittype:'', baitcolor:'', baitlength:'', baitweight:'',
+    newbaittype:'', newbaitcolor:'', newbaitlength:'', newbaitweight:'',
+    baitdurationmin:'', techdurationmin:'',
+    bite:0, catch:0, kept:'', species:'', fishlen:'', fishweight:'', notes:'' }, extra||{}); }
 function addEntry(e){ entries.unshift(e); lastAddedId=e.id; fsSaveEntry(e); refreshLists(); }
 function undoLast(){ if(!lastAddedId) return; const id=lastAddedId; entries=entries.filter(e=>e.id!==id); lastAddedId=null;
   fsDeleteEntry(id); refreshLists(); toast('Rückgängig gemacht'); }
-function refreshLists(){ renderRecent(); renderTripList(); renderStats(); }
+function refreshLists(){ renderRecent(); renderTripList(); renderStatsTab(); }
 
 // ---------- active view ----------
 function renderTripView(){
@@ -1034,7 +1064,9 @@ function correctActiveBait(name){
     const start=ao.bait.start; ao.bait=Object.assign({},b,{start});
     const last=entries.find(e=>e.tripId===trip.id&&e.angler===name&&(e.type==='koederwechsel'||e.type==='start'));
     if(last&&last.type==='start'){ last.baittype=b.type; last.baitcolor=b.color; last.baitlength=b.length||''; last.baitweight=b.weight; }
-    else if(last&&last.type==='koederwechsel'){ last.notes='neuer Köder: '+b.type+' '+baitLabel(b); }
+    else if(last&&last.type==='koederwechsel'){
+      last.newbaittype=b.type; last.newbaitcolor=b.color; last.newbaitlength=b.length||''; last.newbaitweight=b.weight;
+      last.notes='neuer Köder: '+b.type+' '+baitLabel(b); }
     if(last) fsSaveEntry(last);
     saveTripState(); renderTripView(); toast('Köder korrigiert'); }); }
 function updatePauseButton(){
@@ -1084,7 +1116,7 @@ async function togglePause(){
   paused=!paused; addEntry(makeEntry(s,paused?'pause':'fortsetzung'));
   updatePauseButton(); saveTripState(); toast(paused?'⏸ Pausiert':'▶ Fortgesetzt'); }
 
-let modalAngler=null,modalSpecies=null;
+let modalAngler=null,modalSpecies=null,modalKept=null;
 function anglerChipsHtml(sel){
   if(anglers.length<=1) return '';
   return `<div class="field"><label>Wer?</label><div class="chips" id="mAngler">
@@ -1097,7 +1129,7 @@ function depthFieldHtml(){
   return `<div class="field"><label>Wassertiefe (m) – aus dem mitlaufenden Wert</label>
     <input type="number" id="mDepth" step="0.5" inputmode="decimal" value="${currentDepth??''}"></div>`; }
 function openEventModal(action){
-  modalAngler=anglers.length===1?anglers[0].name:null; modalSpecies=null;
+  modalAngler=anglers.length===1?anglers[0].name:null; modalSpecies=null; modalKept=null;
   if(action==='biss'){
     openModal(`<h3>〰 Biss</h3>${fixBadgeHtml()}<div class="card">${anglerChipsHtml(modalAngler)}
       ${depthFieldHtml()}
@@ -1109,6 +1141,8 @@ function openEventModal(action){
       <div class="field"><label>Fischart</label><div class="chips big" id="mSpecies">
         ${SPECIES.map(s=>`<div class="chip" data-val="${s}">${s}</div>`).join('')}</div>
         <input type="text" id="mSpeciesCustom" placeholder="Art…" style="display:none;margin-top:8px;"></div>
+      <div class="field"><label>Mitgenommen?</label><div class="chips big" id="mKept">
+        <div class="chip" data-val="1">Mitgenommen</div><div class="chip" data-val="0">Zurückgesetzt</div></div></div>
       ${depthFieldHtml()}
       <div class="row2"><div class="field"><label>Länge (cm)</label><input type="number" id="mLen" step="0.1" inputmode="decimal"></div>
       <div class="field"><label>Gewicht (kg)</label><input type="number" id="mWeight" step="0.01" inputmode="decimal"></div></div>
@@ -1119,6 +1153,9 @@ function openEventModal(action){
       document.querySelectorAll('#mSpecies .chip').forEach(x=>x.classList.remove('sel'));
       c.classList.add('sel'); modalSpecies=c.dataset.val;
       document.getElementById('mSpeciesCustom').style.display=modalSpecies==='Andere'?'block':'none'; }));
+    document.querySelectorAll('#mKept .chip').forEach(c=>c.addEventListener('click',()=>{
+      document.querySelectorAll('#mKept .chip').forEach(x=>x.classList.remove('sel'));
+      c.classList.add('sel'); modalKept=c.dataset.val; }));
   }
   bindAnglerChips(); updateFixBadge();
   document.getElementById('mCancel').addEventListener('click',()=>{ pendingEvent=null; closeModal(); });
@@ -1127,6 +1164,7 @@ function openEventModal(action){
 async function saveEvent(action){
   if(anglers.length>1&&!modalAngler){ toast('Bitte Angler wählen'); return; }
   if(action==='fisch'&&!modalSpecies){ toast('Bitte Fischart wählen'); return; }
+  if(action==='fisch'&&modalKept==null){ toast('Bitte angeben: mitgenommen oder zurückgesetzt'); return; }
   const name=modalAngler||anglers[0].name, ao=anglers.find(a=>a.name===name);
   const btn=document.getElementById('mSave'); btn.disabled=true; btn.textContent='Speichere…';
   const notes=document.getElementById('mNotes').value;
@@ -1144,7 +1182,7 @@ async function saveEvent(action){
     const sp=modalSpecies==='Andere'?document.getElementById('mSpeciesCustom').value.trim():modalSpecies;
     addEntry(makeEntry(snap,'fisch',Object.assign({angler:name,depth:dv??'',depthsource:dsrc,species:sp,
       fishlen:document.getElementById('mLen').value,fishweight:document.getElementById('mWeight').value,
-      bite:1,catch:1,notes},bf)));
+      bite:1,catch:1,kept:Number(modalKept),notes},bf)));
     vibrate([25,60,25]); toast('🐟 Fang gespeichert!',undoLast);
   }
   pendingEvent=null; closeModal(); saveTripState(); renderTripView(); }
@@ -1165,6 +1203,7 @@ function pickBaitFor(name){
     const snap=await captureSnapshot(pe.loc,pe.datetime);
     addEntry(makeEntry(snap,'koederwechsel',{angler:name,baittype:old.type,baitcolor:old.color,
       baitlength:old.length||'',baitweight:old.weight,baitdurationmin:dur,
+      newbaittype:b.type,newbaitcolor:b.color,newbaitlength:b.length||'',newbaitweight:b.weight,
       notes:'neuer Köder: '+b.type+' '+baitLabel(b)}));
     ao.bait=Object.assign({},b,{start:Date.now()});
     pendingEvent=null; secondsLeft=300; saveTripState(); renderTripView(); vibrate(25);
@@ -1204,6 +1243,9 @@ window.openEntryEditor=function(id){
       ${isFish?`<div class="field" style="margin-top:10px;"><label>Fischart</label>
         <div class="chips big" id="eSpecies">${SPECIES.map(s=>`<div class="chip ${sp===s?'sel':''}" data-val="${s}">${s}</div>`).join('')}</div>
         <input type="text" id="eSpeciesCustom" placeholder="Art…" style="margin-top:8px;display:${sp&&!SPECIES.includes(sp)?'block':'none'};" value="${SPECIES.includes(sp)?'':esc(sp)}"></div>
+        <div class="field"><label>Mitgenommen?</label><div class="chips big" id="eKept">
+          <div class="chip ${Number(e.kept)===1&&e.kept!==''?'sel':''}" data-val="1">Mitgenommen</div>
+          <div class="chip ${Number(e.kept)===0&&e.kept!==''?'sel':''}" data-val="0">Zurückgesetzt</div></div></div>
         <div class="row2"><div class="field"><label>Länge (cm)</label><input type="number" id="eLen" step="0.1" inputmode="decimal" value="${esc(e.fishlen)}"></div>
         <div class="field"><label>Gewicht (kg)</label><input type="number" id="eWeight" step="0.01" inputmode="decimal" value="${esc(e.fishweight)}"></div></div>`:''}
       <div class="field"><label>Wassertiefe (m)</label><input type="number" id="eDepth" step="0.5" inputmode="decimal" value="${esc(e.depth)}"></div>
@@ -1223,6 +1265,9 @@ window.openEntryEditor=function(id){
   if(spEl) spEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
     spEl.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); sp=c.dataset.val;
     document.getElementById('eSpeciesCustom').style.display=sp==='Andere'?'block':'none'; }));
+  const keptEl=document.getElementById('eKept');
+  if(keptEl) keptEl.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+    keptEl.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); }));
   const br=document.getElementById('eBaitRow');
   if(br) br.addEventListener('click',()=>openBaitPicker('Köder korrigieren',b=>{
     e.baittype=b.type; e.baitcolor=b.color; e.baitlength=b.length||''; e.baitweight=b.weight;
@@ -1235,7 +1280,8 @@ window.openEntryEditor=function(id){
   document.getElementById('eSave').addEventListener('click',()=>{
     if(ang){ const s=ang.querySelector('.chip.sel'); if(s) e.angler=s.dataset.val; }
     if(isFish){ e.species=sp==='Andere'?document.getElementById('eSpeciesCustom').value.trim():(sp||e.species);
-      e.fishlen=document.getElementById('eLen').value; e.fishweight=document.getElementById('eWeight').value; }
+      e.fishlen=document.getElementById('eLen').value; e.fishweight=document.getElementById('eWeight').value;
+      const ks=keptEl&&keptEl.querySelector('.chip.sel'); if(ks) e.kept=Number(ks.dataset.val); }
     const nd=document.getElementById('eDepth').value;
     if(nd!==String(e.depth)){ e.depth=nd; e.depthsource=nd?'manuell':''; }
     e.notes=document.getElementById('eNotes').value;
@@ -1254,6 +1300,11 @@ function depthCell(e){
   if(e.depth===''||e.depth==null) return '';
   const tag=e.depthsource==='karte'?' (Karte)':e.depthsource==='mitgefuehrt'?' (mitgef.)':'';
   return `<div>Tiefe: <b>${fmtD(e.depth)} m${tag}</b></div>`; }
+function keptBadge(e){
+  if(e.kept===''||e.kept==null) return '';
+  return Number(e.kept)===1
+    ? `<div class="trip-badges" style="margin-top:5px;"><span class="badge">✔ mitgenommen</span></div>`
+    : `<div class="trip-badges" style="margin-top:5px;"><span class="badge plain">↩ zurückgesetzt</span></div>`; }
 function entryHtml(e){
   if(e.type==='fisch'){
     const size=[e.fishlen?e.fishlen+' cm':'',e.fishweight?e.fishweight+' kg':''].filter(Boolean).join(' · ');
@@ -1265,7 +1316,8 @@ function entryHtml(e){
         <span class="entry-edit">bearbeiten</span></div>
       <div class="fish-head">${fishIcon(e.species)}
         <div><div class="sp ${e.species?'':'missing'}">${spTxt}</div>
-        ${size?`<div class="sz">${esc(size)}</div>`:''}</div></div>
+        ${size?`<div class="sz">${esc(size)}</div>`:''}
+        ${keptBadge(e)}</div></div>
       <div class="entry-grid">${baitCell(e)}${depthCell(e)}
         ${e.technique?`<div>Technik: <b>${esc(e.technique)}</b></div>`:''}
         ${e.watertemp!==''&&e.watertemp!=null?`<div>Wasser: <b>${e.watertemp}°C</b></div>`:''}
@@ -1302,6 +1354,35 @@ function getTrips(){
     const s=[...list].sort((a,b)=>a.datetime.localeCompare(b.datetime));
     return {id,entries:s,start:s[0].datetime,end:s[s.length-1].datetime,live:trip&&trip.id===id}; })
     .sort((a,b)=>b.start.localeCompare(a.start)); }
+
+// Rekonstruiert die Ködersegmente eines Anglers innerhalb eines Trips.
+// 'start' trägt den ersten Köder in baittype/…, jeder 'koederwechsel' den neuen in newbaittype/….
+// Das jeweils nächste Event (bzw. tripEndIso) schließt das Segment – das letzte Segment
+// wird dadurch abgeleitet und muss nirgends gespeichert werden.
+function baitKey(b){ return [b.type,b.color].filter(Boolean).join(' · '); }
+function baitSegments(tripEntries,anglerName,tripEndIso){
+  const ev=tripEntries.filter(e=>e.angler===anglerName&&(e.type==='start'||e.type==='koederwechsel'))
+    .sort((a,b)=>a.datetime.localeCompare(b.datetime));
+  const segs=[];
+  ev.forEach((e,i)=>{
+    const bait=e.type==='start'
+      ? {type:e.baittype,color:e.baitcolor,length:e.baitlength,weight:e.baitweight}
+      : {type:e.newbaittype,color:e.newbaitcolor,length:e.newbaitlength,weight:e.newbaitweight};
+    if(!bait.type) return;                       // Alt-Köderwechsel ohne newbait* – bewusst überspringen
+    const endIso=ev[i+1]?ev[i+1].datetime:tripEndIso;
+    if(!endIso) return;
+    const mins=Math.max(0,Math.round((new Date(endIso)-new Date(e.datetime))/60000));
+    segs.push({bait,key:baitKey(bait),start:e.datetime,end:endIso,minutes:mins}); });
+  return segs; }
+// Köder-Minuten je Köder über alle Trips eines Jahres (nur App-Daten).
+function baitMinutesForYear(year){
+  const out={};
+  getTrips().filter(t=>t.start.slice(0,4)===String(year)).forEach(t=>{
+    const endIso=t.live?nowLocalISO():t.end;
+    const names=[...new Set(t.entries.map(e=>e.angler).filter(Boolean))];
+    names.forEach(n=>baitSegments(t.entries,n,endIso).forEach(s=>{
+      out[s.key]=(out[s.key]||0)+s.minutes; })); });
+  return out; }
 function tripStats(t){
   const fish=t.entries.filter(e=>e.type==='fisch');
   const bites=t.entries.filter(e=>e.type==='biss'||e.type==='fisch');
@@ -1589,38 +1670,226 @@ document.getElementById('clearYes').addEventListener('click',async()=>{ entries=
   refreshLists(); document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht (auf allen Geräten)'); });
 
 // ---------- Statistik ----------
-function listBlock(id,arr,suf){
-  const el=document.getElementById(id); if(!el) return;
-  el.outerHTML=arr.length
-    ? `<div id="${id}">`+arr.map(([k,v])=>`<div class="kv"><span>${esc(k)}</span><b>${v}${suf}</b></div>`).join('')+'</div>'
-    : `<div id="${id}" class="empty" style="padding:18px 0;">Noch keine Daten</div>`; }
-function speciesBlock(arr){
-  const el=document.getElementById('topSpecies'); if(!el) return;
-  el.outerHTML=arr.length
-    ? `<div id="topSpecies">`+arr.map(([k,v])=>`<div class="sp-row">${fishIcon(k,44)}<span>${esc(k)}</span><b>${v}×</b></div>`).join('')+'</div>'
-    : `<div id="topSpecies" class="empty" style="padding:18px 0;">Noch keine Daten</div>`; }
 function depthBucket(d){ return d<2?'0–2 m':d<4?'2–4 m':d<6?'4–6 m':d<8?'6–8 m':d<12?'8–12 m':'über 12 m'; }
-function renderStats(){
-  const c=entries.filter(e=>e.type==='fisch'),b=entries.filter(e=>e.type==='biss'||e.type==='fisch');
-  document.getElementById('statTrips').textContent=getTrips().length;
-  document.getElementById('statCatches').textContent=c.length;
-  document.getElementById('statBites').textContent=b.length;
-  document.getElementById('statRate').textContent=b.length?Math.round(c.length/b.length*100)+'%':'0%';
+const SPECIES_ORDER=['Zander','Hecht','Barsch'];
+const pct=(n,tot)=>tot?Math.round(n/tot*100):0;
+const fmtDur=m=>m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min';
+
+// Live-Fänge eines Jahres. Jahre mit Archiv-cutoff zählen nur Einträge NACH dem Stichtag,
+// weil die Archivzahlen die früheren App-Trips bereits enthalten.
+function liveFish(year,cutoff){
+  return entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year)&&(!cutoff||e.datetime>cutoff)); }
+
+// Archiv + App-Daten zu Jahreszahlen verschmelzen.
+function yearStats(year){
+  const arc=ARCHIVE[year], cutoff=arc&&arc.cutoff;
+  const fish=liveFish(year,cutoff);
+  const bySpecies={}, byAngler={}, maxBySpecies={};
+  let total=0, kept=0, keptKnown=0;
+  if(arc){
+    Object.entries(arc.species).forEach(([sp,d])=>{
+      const sum=Object.values(d.counts).reduce((a,b)=>a+b,0);
+      bySpecies[sp]=(bySpecies[sp]||0)+sum; total+=sum; kept+=d.kept; keptKnown+=sum;
+      Object.entries(d.counts).forEach(([who,n])=>{ if(n) byAngler[who]=(byAngler[who]||0)+n; });
+      maxBySpecies[sp]={cm:d.max.cm,who:[...d.max.who]}; }); }
+  fish.forEach(e=>{
+    const sp=e.species||'Unbekannt';
+    bySpecies[sp]=(bySpecies[sp]||0)+1; total++;
+    if(e.kept!==''&&e.kept!=null){ keptKnown++; if(Number(e.kept)===1) kept++; }
+    if(e.angler) byAngler[e.angler]=(byAngler[e.angler]||0)+1;
+    const len=num(e.fishlen);
+    if(len!=null){
+      const cur=maxBySpecies[sp];
+      if(!cur||len>cur.cm) maxBySpecies[sp]={cm:len,who:[e.angler||'Unbekannt']};
+      else if(len===cur.cm&&e.angler&&!cur.who.includes(e.angler)) cur.who.push(e.angler); } });
+  // App-Abdeckung: bewusst OHNE cutoff-Filter – zeigt, wie viel der Saison bereits
+  // über die App läuft, unabhängig davon, was davon schon in den Archivzahlen steckt.
+  const inYear=e=>e.datetime.slice(0,4)===String(year);
+  const appFish=entries.filter(e=>e.type==='fisch'&&inYear(e)).length;
+  const bites=entries.filter(e=>(e.type==='biss'||e.type==='fisch')&&inYear(e)).length;
+  return { year, total, kept, keptKnown, keptRate:pct(kept,keptKnown), bySpecies, byAngler, maxBySpecies,
+    bites, appFish, hasArchive:!!arc, cutoff }; }
+
+function allYears(){
+  const ys=new Set(ARCHIVE_YEARS);
+  entries.forEach(e=>{ if(e.type==='fisch') ys.add(Number(e.datetime.slice(0,4))); });
+  return [...ys].filter(y=>y).sort((a,b)=>a-b); }
+
+// ---------- kleine Inline-SVG-Diagramme (kein Chart-Framework, Stil wie routeSvg) ----------
+function barChartSvg(items,opt){
+  opt=opt||{};
+  if(!items.length) return '<div class="empty" style="padding:18px 0;">Noch keine Daten</div>';
+  const W=320,H=opt.height||150,PL=6,PR=6,PB=26,PT=14;
+  const max=Math.max(...items.map(i=>i.v),opt.min||0)||1;
+  const bw=(W-PL-PR)/items.length, gap=Math.min(7,bw*0.22);
+  const bars=items.map((it,i)=>{
+    const h=Math.max(it.v>0?2:0,(H-PT-PB)*(it.v/max));
+    const x=PL+i*bw+gap/2, y=H-PB-h, w=bw-gap;
+    const fill=it.muted?'var(--line)':(it.color||'var(--brass)');
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${fill}"/>`
+      +(it.v>0?`<text x="${(x+w/2).toFixed(1)}" y="${(y-4).toFixed(1)}" font-size="11" font-weight="800" text-anchor="middle" fill="var(--brass-bright)" font-family="monospace">${it.label!=null?it.label:it.v}</text>`:'')
+      +`<text x="${(x+w/2).toFixed(1)}" y="${H-PB+14}" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--text-dim)" font-family="monospace">${esc(it.k)}</text>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;">
+    <line x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="var(--line-soft)" stroke-width="2"/>
+    ${bars}</svg>`; }
+
+const WEEKDAYS=['Mo','Di','Mi','Do','Fr','Sa','So'];
+function weekdayChart(year){
+  const fish=entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year));
+  if(!fish.length) return '<div class="empty" style="padding:18px 0;">Noch keine App-Fänge in dieser Saison</div>';
+  // Stunden im Wasser je Wochentag aus den Trips, Fänge je Wochentag aus den Einträgen
+  const cFish=[0,0,0,0,0,0,0], cMin=[0,0,0,0,0,0,0];
+  const wd=iso=>(new Date(iso).getDay()+6)%7;   // Mo=0 … So=6
+  fish.forEach(e=>{ cFish[wd(e.datetime)]++; });
+  getTrips().filter(t=>t.start.slice(0,4)===String(year)).forEach(t=>{
+    const mins=Math.max(1,Math.round((new Date(t.live?nowLocalISO():t.end)-new Date(t.start))/60000));
+    cMin[wd(t.start)]+=mins; });
+  const items=WEEKDAYS.map((k,i)=>{
+    const h=cMin[i]/60, rate=h>0?cFish[i]/h:0;
+    return { k, v:Math.round(rate*100)/100, label:h>0?(Math.round(rate*10)/10).toString().replace('.',','):'', muted:h===0 }; });
+  const any=items.some(i=>i.v>0);
+  return (any?barChartSvg(items,{height:150}):'<div class="empty" style="padding:18px 0;">Noch keine Trip-Zeiten erfasst</div>')
+    +`<p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">Fänge pro Stunde auf dem Wasser. Graue Balken = an dem Wochentag noch nicht geangelt.</p>`; }
+
+// ---------- Karten der Saison-Ansicht ----------
+function card(title,body,note){
+  return `<div class="card"><h2>${title}</h2>${note?`<p style="font-size:11.5px;color:var(--text-dim);margin:-4px 0 10px;font-weight:600;">${note}</p>`:''}${body}</div>`; }
+function kvRows(arr,fmt){
+  return arr.length?arr.map(([k,v])=>`<div class="kv"><span>${esc(k)}</span><b>${fmt?fmt(v,k):v}</b></div>`).join('')
+    :'<div class="empty" style="padding:18px 0;">Noch keine Daten</div>'; }
+
+function speciesRows(bySpecies,total){
+  const arr=Object.entries(bySpecies).sort((a,b)=>b[1]-a[1]||bySpeciesOrder(a[0],b[0]));
+  if(!arr.length) return '<div class="empty" style="padding:18px 0;">Noch keine Daten</div>';
+  return arr.map(([k,v])=>`<div class="sp-row">${fishIcon(k,44)}<span>${esc(k)}</span>
+    <b>${v}× · ${pct(v,total)}%</b></div>`).join(''); }
+
+const bySpeciesOrder=(a,b)=>{
+  const ia=SPECIES_ORDER.indexOf(a), ib=SPECIES_ORDER.indexOf(b);
+  return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b); };
+function recordRows(maxBySpecies){
+  const arr=Object.entries(maxBySpecies).sort((a,b)=>bySpeciesOrder(a[0],b[0]));
+  if(!arr.length) return '<div class="empty" style="padding:18px 0;">Noch keine Größen erfasst</div>';
+  return arr.map(([sp,m])=>`<div class="sp-row">${fishIcon(sp,44)}<span>${esc(sp)}</span>
+    <b>${fmtD(m.cm)} cm · ${esc(m.who.join(', '))}</b></div>`).join(''); }
+
+function baitPerformanceRows(year){
+  const mins=baitMinutesForYear(year);
+  const hits={};
+  entries.filter(e=>(e.type==='biss'||e.type==='fisch')&&e.datetime.slice(0,4)===String(year))
+    .forEach(e=>{ const k=baitKey({type:e.baittype,color:e.baitcolor}); if(!k) return;
+      hits[k]=hits[k]||{bites:0,fish:0}; hits[k].bites++; if(e.type==='fisch') hits[k].fish++; });
+  const keys=[...new Set([...Object.keys(mins),...Object.keys(hits)])];
+  if(!keys.length) return '<div class="empty" style="padding:18px 0;">Noch keine Köderdaten</div>';
+  const rows=keys.map(k=>{
+    const m=mins[k]||0, h=hits[k]||{bites:0,fish:0};
+    return { k, m, bites:h.bites, fish:h.fish, rate:m>0?h.bites/(m/60):null }; })
+    .sort((a,b)=>(b.rate??-1)-(a.rate??-1)||b.bites-a.bites);
+  return rows.map(r=>`<div class="kv" style="align-items:flex-start;">
+    <span>${esc(r.k)}<br><span style="font-size:11px;">${r.m>0?fmtDur(r.m)+' im Wasser':'Zeit unbekannt'} · ${r.fish} ${r.fish===1?'Fang':'Fänge'}</span></span>
+    <b>${r.rate!=null?(Math.round(r.rate*10)/10).toString().replace('.',',')+' Bisse/h':'–'}</b></div>`).join(''); }
+
+function depthCardBody(){
   const dp=depthPoints();
-  const ds=document.getElementById('depthStats');
-  if(ds){ if(dp.length){ const dd=dp.map(p=>p.depth);
-      ds.innerHTML=`<div>Messpunkte: <span class="ok">${dp.length}</span></div>
-        <div>Tiefenbereich: ${fmtD(Math.min(...dd))} – ${fmtD(Math.max(...dd))} m</div>
-        <div>Ø Tiefe: ${fmtD(Math.round(dd.reduce((a,x)=>a+x,0)/dd.length*10)/10)} m</div>
-        <div style="margin-top:6px;">Die Karte wächst mit jedem Eintrag. Ab etwa 200 Punkten liefert sie brauchbare Vorschläge.</div>`; }
-    else ds.innerHTML='<div>Noch keine Tiefenmessungen. Setze im Trip die Wassertiefe – jeder Punkt landet in der Karte.</div>'; }
-  const cnt=k=>{ const m={}; c.forEach(e=>{ if(e[k]) m[e[k]]=(m[e[k]]||0)+1; }); return Object.entries(m).sort((x,y)=>y[1]-x[1]); };
-  speciesBlock(cnt('species'));
+  if(!dp.length) return '<div class="diag">Noch keine Tiefenmessungen. Setze im Trip die Wassertiefe – jeder Punkt landet in der Karte.</div>';
+  const dd=dp.map(p=>p.depth);
+  const c=entries.filter(e=>e.type==='fisch');
   const db={}; c.forEach(e=>{ const d=num(e.depth); if(d!=null){ const k=depthBucket(d); db[k]=(db[k]||0)+1; } });
-  listBlock('topDepths',Object.entries(db).sort((a,b)=>b[1]-a[1]),' Fänge');
-  listBlock('topBaits',cnt('baitcolor').length?cnt('baitcolor'):cnt('baittype'),' Fänge');
-  listBlock('topLengths',cnt('baitlength'),' Fänge');
-  listBlock('topAnglers',cnt('angler'),' Fänge'); }
+  const buckets=Object.entries(db).sort((a,b)=>b[1]-a[1]);
+  return `<div class="diag" style="margin-bottom:10px;">
+      <div>Messpunkte: <span class="ok">${dp.length}</span></div>
+      <div>Tiefenbereich: ${fmtD(Math.min(...dd))} – ${fmtD(Math.max(...dd))} m</div>
+      <div>Ø Tiefe: ${fmtD(Math.round(dd.reduce((a,x)=>a+x,0)/dd.length*10)/10)} m</div></div>
+    ${buckets.length?`<div style="border-top:2px dashed var(--line-soft);padding-top:10px;">
+      ${kvRows(buckets,v=>v+' Fänge')}</div>`:''}`; }
+
+// ---------- Ansicht: Diese Saison ----------
+function renderSeasonStats(year){
+  const s=yearStats(year);
+  const trips=getTrips().filter(t=>t.start.slice(0,4)===String(year));
+  const appNote=s.hasArchive&&s.cutoff
+    ? `Saison-Gesamtzahlen inkl. der bis zum ${fmtDate(s.cutoff)} in der Fischliste geführten Fänge.`
+    : '';
+  const overview=`<div class="stats-grid">
+      <div class="stat"><div class="n">${s.total}</div><div class="l">Fänge</div></div>
+      <div class="stat"><div class="n">${s.kept}</div><div class="l">Mitgenommen</div></div>
+      <div class="stat"><div class="n">${s.keptRate}%</div><div class="l">Entnahmequote</div></div>
+      <div class="stat"><div class="n">${trips.length}</div><div class="l">Trips</div></div>
+    </div>
+    <div class="card"><h2>In der App erfasst</h2>
+      <div class="kv"><span>Fänge über die App</span><b>${s.appFish} von ${s.total}</b></div>
+      <div class="kv"><span>Bisse</span><b>${s.bites}</b></div>
+      <div class="kv"><span>Biss → Fang</span><b>${pct(s.appFish,s.bites)}%</b></div>
+      ${appNote?`<p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">${appNote}</p>`:''}</div>`;
+  return overview
+    + card('Rekorde '+year,recordRows(s.maxBySpecies))
+    + card('Arten-Mix',speciesRows(s.bySpecies,s.total))
+    + card('Angler-Vergleich',kvRows(Object.entries(s.byAngler).sort((a,b)=>b[1]-a[1]),
+        (v)=>`${v}× · ${pct(v,s.total)}%`))
+    + card('Köder-Performance',baitPerformanceRows(year),
+        'Nur aus App-Trips – Zeiten aus Trips vor der Umstellung fehlen.')
+    + card('Fänge pro Stunde nach Wochentag',weekdayChart(year))
+    + card('Tiefenkarte',depthCardBody(),'Über alle Jahre – Tiefen gibt es nur aus der App.'); }
+
+// ---------- Ansicht: Alle Jahre ----------
+function renderAllYearsStats(){
+  const years=allYears();
+  const stats=years.map(y=>yearStats(y));
+  const cur=new Date().getFullYear();
+  const totalsChart=barChartSvg(stats.map(s=>({k:String(s.year).slice(2),v:s.total,muted:s.year===cur})),{height:170});
+  // Arten je Jahr
+  const speciesTable=SPECIES_ORDER.map(sp=>{
+    const cells=stats.map(s=>`<td style="text-align:right;padding:3px 0 3px 10px;">${s.bySpecies[sp]||0}</td>`).join('');
+    return `<tr><td style="padding:3px 0;font-weight:700;">${esc(sp)}</td>${cells}</tr>`; }).join('');
+  // Angler je Jahr + YoY
+  const names=[...new Set(stats.flatMap(s=>Object.keys(s.byAngler)))]
+    .sort((a,b)=>stats.reduce((n,s)=>n+(s.byAngler[b]||0),0)-stats.reduce((n,s)=>n+(s.byAngler[a]||0),0));
+  const anglerRows=names.map(n=>{
+    const cells=stats.map(s=>{
+      const v=s.byAngler[n]||0;
+      return `<td style="text-align:right;padding:3px 0 3px 10px;${v?'':'color:var(--line);'}">${v}</td>`; }).join('');
+    return `<tr><td style="padding:3px 0;font-weight:700;">${esc(n)}</td>${cells}</tr>`; }).join('');
+  const head=`<tr><td></td>${stats.map(s=>`<td style="text-align:right;padding:0 0 4px 10px;color:var(--text-dim);font-size:11px;">${String(s.year).slice(2)}</td>`).join('')}</tr>`;
+  const tbl=b=>`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;">${head}${b}</table></div>`;
+  // YoY des laufenden Jahres gegen Vorjahr
+  const last=stats[stats.length-1], prev=stats[stats.length-2];
+  const yoyRows=prev?names.filter(n=>(prev.byAngler[n]||0)||(last.byAngler[n]||0)).map(n=>{
+    const a=prev.byAngler[n]||0,b=last.byAngler[n]||0;
+    const d=a?Math.round((b/a-1)*100):null;
+    return [n,`${b} statt ${a} · ${d==null?'neu':(d>0?'+':'')+d+'%'}`]; }):[];
+  // Allzeit-Rekorde
+  const allMax={};
+  stats.forEach(s=>Object.entries(s.maxBySpecies).forEach(([sp,m])=>{
+    const cur=allMax[sp];
+    if(!cur||m.cm>cur.cm) allMax[sp]={cm:m.cm,who:[...m.who],year:s.year};
+    else if(m.cm===cur.cm) m.who.forEach(w=>{ if(!cur.who.includes(w)) cur.who.push(w); }); }));
+  const recRows=Object.entries(allMax).sort((a,b)=>b[1].cm-a[1].cm)
+    .map(([sp,m])=>`<div class="sp-row">${fishIcon(sp,44)}<span>${esc(sp)}</span>
+      <b>${fmtD(m.cm)} cm · ${esc(m.who.join(', '))} · ${m.year}</b></div>`).join('');
+  const keptRows=stats.map(s=>[String(s.year),`${s.kept} von ${s.keptKnown} · ${s.keptRate}%`]);
+  return card('Fänge pro Jahr',totalsChart,'Grauer Balken = laufende Saison.')
+    + card('Arten je Jahr',tbl(speciesTable))
+    + card('Angler je Jahr',tbl(anglerRows))
+    + (yoyRows.length?card(`Veränderung ${last.year} zu ${prev.year}`,kvRows(yoyRows),
+        last.year===cur?`${cur} läuft noch – der Vergleich gegen die volle Saison ${prev.year} hinkt naturgemäß.`:''):'')
+    + card('Allzeit-Rekorde',recRows||'<div class="empty" style="padding:18px 0;">Noch keine Daten</div>')
+    + card('Entnahme je Jahr',kvRows(keptRows)); }
+
+// ---------- Dispatcher ----------
+let statMode='season';
+function renderStatsTab(){
+  const sv=document.getElementById('statSeasonView'), av=document.getElementById('statAllYearsView');
+  if(!sv||!av) return;
+  const year=new Date().getFullYear();
+  const yl=document.getElementById('statSeasonYear'); if(yl) yl.textContent=year;
+  document.getElementById('statSeason').classList.toggle('sel',statMode==='season');
+  document.getElementById('statAllYears').classList.toggle('sel',statMode==='all');
+  sv.style.display=statMode==='season'?'block':'none';
+  av.style.display=statMode==='all'?'block':'none';
+  if(statMode==='season') sv.innerHTML=renderSeasonStats(year);
+  else av.innerHTML=renderAllYearsStats(); }
+document.getElementById('statSeason').addEventListener('click',()=>{ statMode='season'; renderStatsTab(); });
+document.getElementById('statAllYears').addEventListener('click',()=>{ statMode='all'; renderStatsTab(); });
 
 checkLock();
 </script>
