@@ -219,6 +219,12 @@
   /* Seekarte toggle */
   .seek-toggle{ display:flex; gap:8px; margin-bottom:12px; }
   .seek-toggle .chip{ flex:1; text-align:center; }
+
+  /* Zwei Diagramme nebeneinander; erst auf sehr schmalen Displays untereinander */
+  .pair{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:10px; }
+  .pair > .card{ min-width:0; padding:12px 10px; }
+  .pair > .card h2{ font-size:10px; letter-spacing:0.05em; }
+  @media (max-width:359px){ .pair{ grid-template-columns:minmax(0,1fr); } }
 </style>
 </head>
 <body>
@@ -353,13 +359,6 @@
       <div class="btn-row" style="margin-bottom:10px;">
         <button class="btn" id="uploadTripsBtn">⬆ Lokale Trips dieses Geräts hochladen</button>
       </div>
-      <div class="btn-row" style="margin-bottom:14px;">
-        <button class="btn" id="clearBtn">🗑 Alle Daten löschen (alle Geräte)</button>
-      </div>
-      <div id="clearConfirm" style="display:none;margin-bottom:14px;" class="confirm-row">
-        <button class="btn yes" id="clearYes">Ja, überall löschen</button>
-        <button class="btn" id="clearNo">Abbrechen</button>
-      </div>
       <div id="tripList"><div class="empty">Noch keine Trips aufgezeichnet.</div></div>
     </div>
     <div id="tripDetailView" style="display:none;"></div>
@@ -367,21 +366,29 @@
 
   <section id="tab-seekarte">
     <div class="seek-toggle">
-      <div class="chip sel" id="seekHeat">Biss/Fisch Heatmap</div>
-      <div class="chip" id="seekDepth">Tiefenkarte</div>
+      <div class="chip sel" id="seekRoutes">Fangrouten</div>
+      <div class="chip" id="seekHeat">Heatmap</div>
+      <div class="chip" id="seekDepth">Tiefen</div>
     </div>
+    <div id="navBox"></div>
     <div class="card">
       <div class="map-box" id="seekMapBox"><div class="empty" style="padding:26px 0;">Lade Karte…</div></div>
+      <div id="seekLegend"></div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn" id="seekCenter">◎ Mein Standort</button>
+        <button class="btn" id="seekAddWp">＋ Wegpunkt</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">
+        Karte antippen setzt ein Ziel – Peilung und Entfernung erscheinen oben.</p>
     </div>
+    <div class="card"><h2>Wegpunkte</h2><div id="wpList"></div></div>
+    <details class="card"><summary>Offline-Karte</summary>
+      <div class="cardBody" id="offlineBox"></div></details>
   </section>
 
   <section id="tab-stats">
-    <div class="seek-toggle">
-      <div class="chip sel" id="statSeason">Saison <span id="statSeasonYear"></span></div>
-      <div class="chip" id="statAllYears">Alle Jahre</div>
-    </div>
-    <div id="statSeasonView"></div>
-    <div id="statAllYearsView" style="display:none;"></div>
+    <div id="statNav"></div>
+    <div id="statBody"></div>
   </section>
 </main>
 
@@ -406,7 +413,7 @@ const fbApp=initializeApp(firebaseConfig);
 const db=getFirestore(fbApp);
 const auth=getAuth(fbApp);
 try{ enableIndexedDbPersistence(db); }catch(e){}
-const entriesCol=collection(db,'entries'), baitsCol=collection(db,'baits');
+const entriesCol=collection(db,'entries'), baitsCol=collection(db,'baits'), wpCol=collection(db,'waypoints');
 
 function checkLock(){
   const ls=document.getElementById('lockScreen');
@@ -474,7 +481,8 @@ let setupSelected=[], setupTechnique=null, setupBaits={};
 let openTripId=null, lastAutoAt=Date.now();
 let timerHandle=null, wakeLock=null, lastAddedId=null;
 let diag={geoLast:'–',wxLast:'–'};
-let pendingEvent=null, showDepthLayer=false, seekLayer='heat', seekMapObj=null;
+let pendingEvent=null, showDepthLayer=false, seekLayer='routes', seekMapObj=null;
+let waypoints=[];
 const wheelVals={};
 
 // ================= FISCH-SILHOUETTEN =================
@@ -575,12 +583,6 @@ async function fsSaveEntriesBatch(list){
     const chunk=list.slice(i,i+450), b=writeBatch(db);
     chunk.forEach(e=>b.set(doc(entriesCol,e.id),e));
     try{ await b.commit(); }catch(err){ toast('⚠ Sync-Fehler: '+err.message); } } }
-async function fsDeleteAllEntries(){
-  const snap=await getDocsSafe(entriesCol);
-  for(let i=0;i<snap.length;i+=450){
-    const chunk=snap.slice(i,i+450), b=writeBatch(db);
-    chunk.forEach(d=>b.delete(d.ref));
-    try{ await b.commit(); }catch(err){ toast('⚠ Sync-Fehler: '+err.message); } } }
 async function fsDeleteTrip(tripId){
   const snap=await getDocsSafe(query(entriesCol,where('tripId','==',tripId)));
   const b=writeBatch(db); snap.forEach(d=>b.delete(d.ref));
@@ -649,7 +651,11 @@ async function boot(){
   onSnapshot(baitsCol,snap=>{
     baitBox=snap.docs.map(d=>d.data());
     renderBaitBox(); renderSetupBaits();
-  },()=>setSyncStatus('Offline – wird synchronisiert, sobald online')); }
+  },()=>setSyncStatus('Offline – wird synchronisiert, sobald online'));
+  onSnapshot(wpCol,snap=>{
+    waypoints=snap.docs.map(d=>d.data()).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    renderWaypoints(); if(seekMapObj) drawWaypoints();
+  },()=>{}); }
 
 document.querySelectorAll('.navItem').forEach(item=>item.addEventListener('click',()=>{
   document.querySelectorAll('.navItem').forEach(t=>t.classList.remove('active'));
@@ -658,7 +664,8 @@ document.querySelectorAll('.navItem').forEach(item=>item.addEventListener('click
   closeNav();
   if(item.dataset.tab==='stats') renderStatsTab();
   if(item.dataset.tab==='trips'){ openTripId=null; renderTripList(); }
-  if(item.dataset.tab==='seekarte') renderSeekarte(); }));
+  if(item.dataset.tab==='seekarte') renderSeekarte();
+  else stopGeoWatch(); }));   // GPS nur laufen lassen, solange die Karte offen ist
 function openNav(){ document.getElementById('navPanel').classList.add('open'); }
 function closeNav(){ document.getElementById('navPanel').classList.remove('open'); }
 document.getElementById('menuBtn').addEventListener('click',openNav);
@@ -1513,22 +1520,291 @@ function loadLeafletHeat(){
     s.onload=()=>res(); s.onerror=()=>rej(new Error('leaflet.heat nicht ladbar')); document.head.appendChild(s);
     setTimeout(()=>rej(new Error('Zeitüberschreitung')),9000); });
   return heatPromise; }
-document.getElementById('seekHeat').addEventListener('click',()=>{ seekLayer='heat'; renderSeekarte(); });
-document.getElementById('seekDepth').addEventListener('click',()=>{ seekLayer='depth'; renderSeekarte(); });
+
+// ---------- Offline-Kacheln ----------
+// Kacheln landen im CacheStorage; die Karte fragt immer erst dort an und geht
+// nur bei einem Fehlschlag ins Netz. Damit bleibt der See ohne Empfang nutzbar.
+const TILE_CACHE='anglog-tiles-v1';
+const TILE_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_ZOOMS=[13,14,15,16];
+const hasCaches=()=>{ try{ return 'caches' in window; }catch(e){ return false; } };
+function tileUrl(z,x,y){ return TILE_URL.replace('{z}',z).replace('{x}',x).replace('{y}',y); }
+function lon2x(lon,z){ return Math.floor((lon+180)/360*Math.pow(2,z)); }
+function lat2y(lat,z){ const r=lat*Math.PI/180;
+  return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)); }
+function dataBounds(){
+  const pts=entries.filter(e=>num(e.lat)!=null&&num(e.lon)!=null);
+  if(!pts.length) return null;
+  const lats=pts.map(e=>num(e.lat)), lons=pts.map(e=>num(e.lon)), m=0.008;
+  return { north:Math.max(...lats)+m, south:Math.min(...lats)-m,
+           east:Math.max(...lons)+m, west:Math.min(...lons)-m }; }
+function offlineTileList(){
+  const b=dataBounds(); if(!b) return [];
+  const out=[];
+  TILE_ZOOMS.forEach(z=>{
+    const x0=lon2x(b.west,z), x1=lon2x(b.east,z), y0=lat2y(b.north,z), y1=lat2y(b.south,z);
+    for(let x=Math.min(x0,x1);x<=Math.max(x0,x1);x++)
+      for(let y=Math.min(y0,y1);y<=Math.max(y0,y1);y++) out.push(tileUrl(z,x,y)); });
+  return out; }
+function cachedTileLayer(){
+  const Layer=L.TileLayer.extend({
+    createTile(coords,done){
+      const img=document.createElement('img'); img.alt='';
+      const url=this.getTileUrl(coords);
+      img.addEventListener('load',()=>done(null,img));
+      img.addEventListener('error',()=>done(null,img));
+      (async()=>{
+        try{
+          if(!hasCaches()) throw 0;
+          const c=await caches.open(TILE_CACHE);
+          let res=await c.match(url);
+          if(!res){ res=await fetch(url,{mode:'cors'}); if(res&&res.ok) await c.put(url,res.clone()); }
+          if(res&&res.ok){ const b=await res.blob(); img._obj=URL.createObjectURL(b); img.src=img._obj; }
+          else img.src=url;
+        }catch(e){ img.src=url; }
+      })();
+      return img; } });
+  const l=new Layer(TILE_URL,{maxZoom:19,attribution:'© OpenStreetMap-Mitwirkende'});
+  l.on('tileunload',ev=>{ if(ev.tile&&ev.tile._obj){ URL.revokeObjectURL(ev.tile._obj); ev.tile._obj=null; } });
+  return l; }
+let prefetchRunning=false;
+async function prefetchTiles(){
+  if(prefetchRunning||!hasCaches()) return;
+  const urls=offlineTileList();
+  if(!urls.length){ toast('Noch keine GPS-Daten – nichts zu speichern'); return; }
+  prefetchRunning=true;
+  const c=await caches.open(TILE_CACHE);
+  let done=0, loaded=0;
+  for(const u of urls){
+    try{
+      if(!(await c.match(u))){
+        const res=await fetch(u,{mode:'cors'});
+        if(res&&res.ok){ await c.put(u,res.clone()); loaded++; }
+        await new Promise(r=>setTimeout(r,110));   // bewusst langsam – kein Massendownload
+      }
+    }catch(e){}
+    done++;
+    if(done%5===0||done===urls.length) renderOfflineBox({done,total:urls.length});
+  }
+  prefetchRunning=false;
+  renderOfflineBox();
+  toast(`🗺 Offline-Karte bereit · ${loaded} neue Kacheln`); }
+async function tileCacheCount(){
+  if(!hasCaches()) return null;
+  try{ const c=await caches.open(TILE_CACHE); return (await c.keys()).length; }catch(e){ return null; } }
+async function clearTileCache(){
+  if(!hasCaches()) return;
+  try{ await caches.delete(TILE_CACHE); }catch(e){}
+  renderOfflineBox(); toast('Offline-Karte gelöscht'); }
+async function renderOfflineBox(progress){
+  const el=document.getElementById('offlineBox'); if(!el) return;
+  if(!hasCaches()){ el.innerHTML='<div class="diag">Dieses Gerät unterstützt keine Offline-Kacheln.</div>'; return; }
+  const total=offlineTileList().length, have=await tileCacheCount();
+  if(progress){
+    const p=Math.round(progress.done/progress.total*100);
+    el.innerHTML=`<div class="diag">Lädt… ${progress.done} von ${progress.total} Kacheln (${p}%)</div>
+      <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin-top:8px;">
+        <div style="height:100%;width:${p}%;background:var(--brass);"></div></div>`;
+    return; }
+  el.innerHTML=`<div class="diag" style="margin-bottom:10px;">
+      <div>Gespeichert: <span class="${have?'ok':''}">${have??0}</span> Kacheln</div>
+      <div>Für euren See nötig: ${total}</div>
+      <div style="margin-top:6px;">Einmal im WLAN laden – danach funktioniert die Karte auch ohne Empfang.</div></div>
+    <div class="btn-row">
+      <button class="btn btn-brass" id="dlTiles">⬇ Jetzt speichern</button>
+      <button class="btn" id="rmTiles">Löschen</button></div>`;
+  const d=document.getElementById('dlTiles'), r=document.getElementById('rmTiles');
+  if(d) d.addEventListener('click',prefetchTiles);
+  if(r) r.addEventListener('click',clearTileCache); }
+
+// ---------- Position, Peilung, Wegpunkte ----------
+let geoWatchId=null, myPos=null, myMarker=null, myRing=null;
+let navTarget=null, navLine=null, wpLayer=[];
+function bearingTo(a,b){
+  const rad=x=>x*Math.PI/180;
+  const φ1=rad(a.lat),φ2=rad(b.lat),Δλ=rad(b.lon-a.lon);
+  const y=Math.sin(Δλ)*Math.cos(φ2);
+  const x=Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360; }
+const COMPASS=['N','NO','O','SO','S','SW','W','NW'];
+const compassName=d=>COMPASS[Math.round(d/45)%8];
+const fmtDist=m=>m>=1000?(m/1000).toFixed(2).replace('.',',')+' km':Math.round(m)+' m';
+function startGeoWatch(){
+  if(geoWatchId!=null||!navigator.geolocation) return;
+  geoWatchId=navigator.geolocation.watchPosition(p=>{
+    myPos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
+    lastKnownLoc={lat:myPos.lat,lon:myPos.lon,acc:myPos.acc,at:Date.now()};
+    drawMyPosition(); renderNavBox();
+  },()=>{},{enableHighAccuracy:true,maximumAge:4000,timeout:15000}); }
+function stopGeoWatch(){
+  if(geoWatchId!=null&&navigator.geolocation){ navigator.geolocation.clearWatch(geoWatchId); geoWatchId=null; } }
+function drawMyPosition(){
+  if(!seekMapObj||!myPos) return;
+  const ll=[myPos.lat,myPos.lon];
+  if(!myMarker){
+    myRing=L.circle(ll,{radius:myPos.acc||10,color:'#2A5F8F',weight:1,fillColor:'#2A5F8F',fillOpacity:0.12}).addTo(seekMapObj);
+    myMarker=L.circleMarker(ll,{radius:8,color:'#fff',weight:3,fillColor:'#2A5F8F',fillOpacity:1}).addTo(seekMapObj);
+  } else { myMarker.setLatLng(ll); myRing.setLatLng(ll); myRing.setRadius(myPos.acc||10); }
+  drawNavLine(); }
+function drawNavLine(){
+  if(!seekMapObj) return;
+  if(navLine){ try{ seekMapObj.removeLayer(navLine); }catch(e){} navLine=null; }
+  if(myPos&&navTarget)
+    navLine=L.polyline([[myPos.lat,myPos.lon],[navTarget.lat,navTarget.lon]],
+      {color:'#A32D10',weight:3,dashArray:'7 6',opacity:0.9}).addTo(seekMapObj); }
+window.setNavTarget=function(lat,lon,name){
+  navTarget={lat,lon,name:name||'Ziel'}; renderNavBox(); drawNavLine(); };
+window.clearNavTarget=function(){
+  navTarget=null; renderNavBox();
+  if(navLine){ try{ seekMapObj.removeLayer(navLine); }catch(e){} navLine=null; } };
+function renderNavBox(){
+  const el=document.getElementById('navBox'); if(!el) return;
+  if(!navTarget){ el.innerHTML=''; return; }
+  if(!myPos){
+    el.innerHTML=`<div class="card" style="border-color:var(--rust);">
+      <div class="kv"><span>Ziel: ${esc(navTarget.name)}</span><b>Warte auf GPS…</b></div>
+      <button class="btn" onclick="clearNavTarget()" style="margin-top:8px;">Ziel aufheben</button></div>`;
+    return; }
+  const d=haversine(myPos,navTarget), b=bearingTo(myPos,navTarget);
+  el.innerHTML=`<div class="card" style="border-color:var(--rust);border-width:3px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <svg viewBox="0 0 40 40" width="46" height="46" style="flex:0 0 auto;">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="var(--line-soft)" stroke-width="2"/>
+        <g transform="rotate(${b.toFixed(0)} 20 20)">
+          <path d="M20 5 L26 30 L20 25 L14 30 Z" fill="var(--rust)"/></g></svg>
+      <div style="flex:1;">
+        <div style="font-size:12.5px;color:var(--text-dim);font-weight:700;">${esc(navTarget.name)}</div>
+        <div style="font-family:var(--font-mono);font-size:21px;font-weight:800;color:var(--brass-bright);">${fmtDist(d)}</div>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-dim);">${Math.round(b)}° ${compassName(b)}</div>
+      </div>
+      <button class="btn" onclick="clearNavTarget()" style="width:auto;padding:9px 12px;flex:0 0 auto;">✕</button>
+    </div></div>`; }
+function drawWaypoints(){
+  wpLayer.forEach(l=>{ try{ seekMapObj.removeLayer(l); }catch(e){} });
+  wpLayer=[];
+  if(!seekMapObj) return;
+  waypoints.forEach(w=>{
+    const m=L.marker([w.lat,w.lon],{title:w.name}).addTo(seekMapObj)
+      .bindPopup(`<b>${esc(w.name)}</b><br>
+        <a href="#" onclick="setNavTarget(${w.lat},${w.lon},'${esc(w.name).replace(/'/g,'')}');return false;">→ Hinfahren</a>`);
+    wpLayer.push(m); }); }
+function renderWaypoints(){
+  const el=document.getElementById('wpList'); if(!el) return;
+  if(!waypoints.length){ el.innerHTML='<div class="empty" style="padding:16px 0;">Noch keine Wegpunkte. Tippe „＋ Wegpunkt“, um deine Position zu merken.</div>'; return; }
+  el.innerHTML=waypoints.map(w=>{
+    const d=myPos?haversine(myPos,w):null, b=myPos?bearingTo(myPos,w):null;
+    return `<div class="angler-mini" style="cursor:default;">
+      <div class="swatch">📍</div>
+      <div style="flex:1;"><div class="name">${esc(w.name)}</div>
+        <div class="meta">${d!=null?fmtDist(d)+' · '+Math.round(b)+'° '+compassName(b):'Position unbekannt'}</div></div>
+      <span class="edit" onclick="setNavTarget(${w.lat},${w.lon},'${esc(w.name).replace(/'/g,'')}')">hin</span>
+      <span class="edit" style="color:var(--rust);margin-left:10px;" onclick="deleteWaypoint('${w.id}')">löschen</span>
+    </div>`; }).join(''); }
+window.deleteWaypoint=function(id){
+  waypoints=waypoints.filter(w=>w.id!==id);
+  deleteDoc(doc(wpCol,id)).catch(()=>{});
+  renderWaypoints(); drawWaypoints(); toast('Wegpunkt gelöscht'); };
+function addWaypointHere(){
+  const base=myPos||(seekMapObj?{lat:seekMapObj.getCenter().lat,lon:seekMapObj.getCenter().lng}:null);
+  if(!base){ toast('Keine Position verfügbar'); return; }
+  openModal(`<h3>📍 Wegpunkt merken</h3><div class="card">
+    <div class="field"><label>Name</label><input type="text" id="wpName" placeholder="z. B. Kante 6 m"></div>
+    <div class="diag">${base.lat.toFixed(5)}, ${base.lon.toFixed(5)}${myPos?'':' (Kartenmitte – kein GPS)'}</div></div>
+    <div class="confirm-row"><button class="btn btn-brass" id="wpSave">Speichern</button>
+    <button class="btn" id="wpCancel">Abbrechen</button></div>`);
+  document.getElementById('wpCancel').addEventListener('click',closeModal);
+  document.getElementById('wpSave').addEventListener('click',()=>{
+    const n=document.getElementById('wpName').value.trim();
+    if(!n){ toast('Bitte Namen eingeben'); return; }
+    const w={id:uid(),name:n,lat:base.lat,lon:base.lon,createdAt:nowLocalISO()};
+    waypoints.push(w); setDoc(doc(wpCol,w.id),w).catch(err=>toast('⚠ Sync-Fehler: '+err.message));
+    renderWaypoints(); drawWaypoints(); closeModal(); toast('📍 Wegpunkt gespeichert'); }); }
+
+// ---------- Fangrouten: Spuren nach Erfolg eingefärbt ----------
+// Die Strecke wird in ~130-m-Zellen gerastert; je Zelle zählen Minuten auf dem
+// Wasser und Fänge. Eingefärbt wird nach Fängen pro Stunde, nicht nach roher Zahl.
+function routeSuccess(){
+  const CELL=0.0012;
+  const grid={}, segs=[];
+  getTrips().forEach(t=>{
+    const p=t.entries.filter(e=>num(e.lat)!=null&&num(e.lon)!=null)
+      .map(e=>({lat:num(e.lat),lon:num(e.lon),dt:e.datetime,type:e.type}))
+      .sort((a,b)=>a.dt.localeCompare(b.dt));
+    for(let i=1;i<p.length;i++){
+      const a=p[i-1], b=p[i];
+      const mins=(new Date(b.dt)-new Date(a.dt))/60000;
+      if(!(mins>0)||mins>15) continue;              // Lücke oder lange Pause
+      if(haversine(a,b)>2000) continue;             // GPS-Ausreißer
+      const key=Math.round(((a.lat+b.lat)/2)/CELL)+'/'+Math.round(((a.lon+b.lon)/2)/(CELL*1.85));
+      const g=grid[key]||(grid[key]={min:0,fish:0});
+      g.min+=mins; if(b.type==='fisch') g.fish++;
+      segs.push({a,b,key}); } });
+  // Erst ab 8 Minuten in einer Zelle wird eine Rate gebildet – sonst macht ein
+  // einzelner Fisch nach zwei Minuten die ganze Farbskala kaputt.
+  Object.values(grid).forEach(g=>{ g.rate=g.min>=8?g.fish/(g.min/60):0; });
+  const rates=Object.values(grid).map(g=>g.rate).filter(r=>r>0).sort((a,b)=>a-b);
+  // Skala auf dem 85. Perzentil kappen, damit ein Ausreißer nicht alles blass macht
+  const maxRate=rates.length?rates[Math.min(rates.length-1,Math.floor(rates.length*0.85))]:0;
+  return {grid,segs,maxRate}; }
+function rateColor(rate,maxRate){
+  if(!(rate>0)) return '#8FA0A8';
+  const t=Math.max(0,Math.min(1,rate/(maxRate||1)));
+  const stops=[[201,169,122],[176,116,26],[138,90,14],[163,45,16]];
+  const f=t*(stops.length-1), i=Math.min(stops.length-2,Math.floor(f)), k=f-i;
+  const c=[0,1,2].map(j=>Math.round(stops[i][j]+(stops[i+1][j]-stops[i][j])*k));
+  return `rgb(${c[0]},${c[1]},${c[2]})`; }
+function drawRouteLayer(){
+  const {grid,segs,maxRate}=routeSuccess();
+  if(!segs.length) return null;
+  const pts=[];
+  segs.forEach(s=>{
+    const g=grid[s.key];
+    L.polyline([[s.a.lat,s.a.lon],[s.b.lat,s.b.lon]],
+      {color:rateColor(g.rate,maxRate),weight:g.rate>0?6:4,opacity:g.rate>0?0.92:0.5,lineCap:'round'})
+      .addTo(seekMapObj)
+      .bindPopup(`${fmtNum(g.rate)} Fänge/h<br>${Math.round(g.min)} min auf dieser Stelle`);
+    pts.push([s.a.lat,s.a.lon],[s.b.lat,s.b.lon]); });
+  entries.filter(e=>e.type==='fisch'&&num(e.lat)!=null).forEach(e=>{
+    L.circleMarker([num(e.lat),num(e.lon)],{radius:5,color:'#fff',weight:2,fillColor:'#14201C',fillOpacity:0.9})
+      .addTo(seekMapObj).bindPopup(`<b>${esc(e.species||'Fisch')}</b><br>${fmtDT(e.datetime)}`); });
+  const legend=document.getElementById('seekLegend');
+  if(legend) legend.innerHTML=`<div class="legend" style="margin-top:10px;">
+    <span style="background:#8FA0A8;">ohne Fang</span>
+    <span style="background:${rateColor(maxRate*0.35,maxRate)};">wenig</span>
+    <span style="background:${rateColor(maxRate*0.7,maxRate)};">gut</span>
+    <span style="background:${rateColor(maxRate,maxRate)};">${fmtNum(maxRate)}+ Fänge/h</span></div>`;
+  return L.latLngBounds(pts); }
+
+['seekRoutes','seekHeat','seekDepth'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('click',()=>{ seekLayer=id.replace('seek','').toLowerCase(); renderSeekarte(); }); });
+document.getElementById('seekCenter').addEventListener('click',()=>{
+  startGeoWatch();
+  if(myPos&&seekMapObj) seekMapObj.setView([myPos.lat,myPos.lon],15);
+  else toast('Suche GPS-Signal…'); });
+document.getElementById('seekAddWp').addEventListener('click',addWaypointHere);
+
 async function renderSeekarte(){
-  document.getElementById('seekHeat').classList.toggle('sel',seekLayer==='heat');
-  document.getElementById('seekDepth').classList.toggle('sel',seekLayer==='depth');
+  ['routes','heat','depth'].forEach(k=>{
+    const c=document.getElementById('seek'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(c) c.classList.toggle('sel',seekLayer===k); });
+  renderOfflineBox(); renderWaypoints(); renderNavBox();
+  startGeoWatch();
   const box=document.getElementById('seekMapBox');
+  const legend=document.getElementById('seekLegend'); if(legend) legend.innerHTML='';
   try{
     await loadLeaflet();
     if(seekLayer==='heat') await loadLeafletHeat();
     if(seekMapObj){ try{ seekMapObj.remove(); }catch(e){} seekMapObj=null; }
+    myMarker=null; myRing=null; navLine=null; wpLayer=[];
     box.innerHTML='<div id="seekLeafMap" style="height:340px;"></div>';
     seekMapObj=L.map('seekLeafMap',{scrollWheelZoom:false});
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {maxZoom:19,attribution:'© OpenStreetMap-Mitwirkende'}).addTo(seekMapObj);
+    cachedTileLayer().addTo(seekMapObj);
+    seekMapObj.on('click',ev=>setNavTarget(ev.latlng.lat,ev.latlng.lng,'Punkt auf der Karte'));
     let bounds=null;
-    if(seekLayer==='heat'){
+    if(seekLayer==='routes'){
+      bounds=drawRouteLayer();
+    } else if(seekLayer==='heat'){
       const pts=entries.filter(e=>(e.type==='biss'||e.type==='fisch')&&num(e.lat)!=null&&num(e.lon)!=null)
         .map(e=>[num(e.lat),num(e.lon),e.type==='fisch'?1:0.5]);
       if(pts.length){ L.heatLayer(pts,{radius:26,blur:22,maxZoom:17}).addTo(seekMapObj);
@@ -1539,7 +1815,8 @@ async function renderSeekarte(){
         .addTo(seekMapObj).bindPopup(`${fmtD(p.depth)} m<br>${fmtDT(p.dt)}`));
         bounds=L.latLngBounds(pts.map(p=>[p.lat,p.lon])); }
     }
-    if(bounds) seekMapObj.fitBounds(bounds,{padding:[26,26]});
+    drawWaypoints(); drawMyPosition();
+    if(bounds&&bounds.isValid&&bounds.isValid()) seekMapObj.fitBounds(bounds,{padding:[26,26]});
     else seekMapObj.setView([lastKnownLoc.lat||51,lastKnownLoc.lon||10],lastKnownLoc.lat?12:4);
     setTimeout(()=>seekMapObj.invalidateSize(),120);
   }catch(e){ box.innerHTML='<div class="empty" style="padding:26px 0;">Karte konnte nicht geladen werden (offline?).</div>'; } }
@@ -1663,233 +1940,389 @@ document.getElementById('exportBtn').addEventListener('click',()=>{
   a.href=u; a.download='angel-logbuch_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
   toast('CSV exportiert'); });
-document.getElementById('clearBtn').addEventListener('click',()=>{ if(entries.length===0) return;
-  document.getElementById('clearConfirm').style.display='flex'; });
-document.getElementById('clearNo').addEventListener('click',()=>{ document.getElementById('clearConfirm').style.display='none'; });
-document.getElementById('clearYes').addEventListener('click',async()=>{ entries=[]; await fsDeleteAllEntries();
-  refreshLists(); document.getElementById('clearConfirm').style.display='none'; toast('Alle Einträge gelöscht (auf allen Geräten)'); });
-
 // ---------- Statistik ----------
-function depthBucket(d){ return d<2?'0–2 m':d<4?'2–4 m':d<6?'4–6 m':d<8?'6–8 m':d<12?'8–12 m':'über 12 m'; }
+function depthBucket(d){ return d<2?'0–2':d<4?'2–4':d<6?'4–6':d<8?'6–8':d<12?'8–12':'12+'; }
 const SPECIES_ORDER=['Zander','Hecht','Barsch'];
+const STACK_ORDER=['Niclas','Sabrina','Heiko'];
+// Eine Farbfamilie: dunkles bis helles Braun, Rest grau.
+const BROWN_DARK='#5C3A06', BROWN_MID='#8A5A0E', BROWN_LIGHT='#C08F45', NEUTRAL='#B9B09B';
+const ANGLER_COLOR={Niclas:BROWN_DARK,Sabrina:BROWN_MID,Heiko:BROWN_LIGHT};
+const SPECIES_COLOR={Zander:BROWN_DARK,Hecht:BROWN_MID,Barsch:BROWN_LIGHT};
 const pct=(n,tot)=>tot?Math.round(n/tot*100):0;
 const fmtDur=m=>m>=60?Math.floor(m/60)+' h '+(m%60)+' min':m+' min';
+const fmtNum=n=>(Math.round(n*10)/10).toString().replace('.',',');
 
-// Live-Fänge eines Jahres. Jahre mit Archiv-cutoff zählen nur Einträge NACH dem Stichtag,
-// weil die Archivzahlen die früheren App-Trips bereits enthalten.
 function liveFish(year,cutoff){
   return entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year)&&(!cutoff||e.datetime>cutoff)); }
 
-// Archiv + App-Daten zu Jahreszahlen verschmelzen.
 function yearStats(year){
   const arc=ARCHIVE[year], cutoff=arc&&arc.cutoff;
   const fish=liveFish(year,cutoff);
-  const bySpecies={}, byAngler={}, maxBySpecies={};
+  const bySpecies={}, byAngler={}, maxBySpecies={}, byAnglerSpecies={};
   let total=0, kept=0, keptKnown=0;
+  const bump=(who,sp,n)=>{ byAnglerSpecies[who]=byAnglerSpecies[who]||{};
+    byAnglerSpecies[who][sp]=(byAnglerSpecies[who][sp]||0)+n; };
   if(arc){
     Object.entries(arc.species).forEach(([sp,d])=>{
       const sum=Object.values(d.counts).reduce((a,b)=>a+b,0);
       bySpecies[sp]=(bySpecies[sp]||0)+sum; total+=sum; kept+=d.kept; keptKnown+=sum;
-      Object.entries(d.counts).forEach(([who,n])=>{ if(n) byAngler[who]=(byAngler[who]||0)+n; });
-      maxBySpecies[sp]={cm:d.max.cm,who:[...d.max.who]}; }); }
+      Object.entries(d.counts).forEach(([who,n])=>{ if(n){ byAngler[who]=(byAngler[who]||0)+n; bump(who,sp,n); } });
+      maxBySpecies[sp]={cm:d.max.cm,who:[...d.max.who],year}; }); }
   fish.forEach(e=>{
     const sp=e.species||'Unbekannt';
     bySpecies[sp]=(bySpecies[sp]||0)+1; total++;
     if(e.kept!==''&&e.kept!=null){ keptKnown++; if(Number(e.kept)===1) kept++; }
-    if(e.angler) byAngler[e.angler]=(byAngler[e.angler]||0)+1;
+    if(e.angler){ byAngler[e.angler]=(byAngler[e.angler]||0)+1; bump(e.angler,sp,1); }
     const len=num(e.fishlen);
     if(len!=null){
       const cur=maxBySpecies[sp];
-      if(!cur||len>cur.cm) maxBySpecies[sp]={cm:len,who:[e.angler||'Unbekannt']};
+      if(!cur||len>cur.cm) maxBySpecies[sp]={cm:len,who:[e.angler||'Unbekannt'],year};
       else if(len===cur.cm&&e.angler&&!cur.who.includes(e.angler)) cur.who.push(e.angler); } });
-  // App-Abdeckung: bewusst OHNE cutoff-Filter – zeigt, wie viel der Saison bereits
-  // über die App läuft, unabhängig davon, was davon schon in den Archivzahlen steckt.
-  const inYear=e=>e.datetime.slice(0,4)===String(year);
-  const appFish=entries.filter(e=>e.type==='fisch'&&inYear(e)).length;
-  const bites=entries.filter(e=>(e.type==='biss'||e.type==='fisch')&&inYear(e)).length;
-  return { year, total, kept, keptKnown, keptRate:pct(kept,keptKnown), bySpecies, byAngler, maxBySpecies,
-    bites, appFish, hasArchive:!!arc, cutoff }; }
+  return { year, total, kept, keptKnown, keptRate:pct(kept,keptKnown),
+    bySpecies, byAngler, byAnglerSpecies, maxBySpecies, hasArchive:!!arc, cutoff }; }
 
 function allYears(){
   const ys=new Set(ARCHIVE_YEARS);
   entries.forEach(e=>{ if(e.type==='fisch') ys.add(Number(e.datetime.slice(0,4))); });
   return [...ys].filter(y=>y).sort((a,b)=>a-b); }
+function stackBuckets(byAngler){
+  const out={Niclas:0,Sabrina:0,Heiko:0,Andere:0};
+  Object.entries(byAngler).forEach(([n,v])=>{ if(out[n]!=null&&n!=='Andere') out[n]+=v; else out.Andere+=v; });
+  return out; }
 
-// ---------- kleine Inline-SVG-Diagramme (kein Chart-Framework, Stil wie routeSvg) ----------
-function barChartSvg(items,opt){
+// ================= Diagramm-Bausteine =================
+const CH_W=320, CH_PAD=4;
+function chartFrame(h,inner){
+  return `<svg viewBox="0 0 ${CH_W} ${h}" width="100%" style="display:block;overflow:visible;">${inner}</svg>`; }
+function emptyBox(txt){ return `<div class="empty" style="padding:18px 0;">${txt}</div>`; }
+function legendRow(items){
+  return `<div class="legend" style="margin-top:10px;">`+items.map(i=>
+    `<span style="background:${i.color};">${esc(i.name)}</span>`).join('')+`</div>`; }
+
+// Zahlenzeilen, spaltengenau unter dem zugehörigen Diagramm.
+// mode 'bars'   → mittig unter jedem Balken
+// mode 'points' → auf den Stützstellen des Flächendiagramms (erste/letzte am Achsenrand)
+const AREA_PL=30;
+function alignedNumbers(n,rows,mode){
+  const posPct=i=>mode==='points'
+    ? (AREA_PL+(CH_W-AREA_PL-CH_PAD)*(n>1?i/(n-1):0))/CH_W*100
+    : (CH_PAD+((CH_W-2*CH_PAD)/n)*(i+0.5))/CH_W*100;
+  return rows.map(r=>`<div style="margin-bottom:9px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+        ${r.color?`<span style="width:9px;height:9px;border-radius:2px;background:${r.color};display:inline-block;flex:0 0 auto;"></span>`:''}
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:800;color:var(--text-dim);">${esc(r.label)}</span></div>
+      <div style="position:relative;height:17px;">
+        ${r.values.map((v,i)=>`<span style="position:absolute;left:${posPct(i).toFixed(2)}%;transform:translateX(-50%);white-space:nowrap;font-family:var(--font-mono);font-size:12.5px;font-weight:700;${v===0||v==='0'?'color:var(--line);':''}">${v}</span>`).join('')}
+      </div></div>`).join(''); }
+
+function stackedBarSvg(cats,series,opt){
   opt=opt||{};
-  if(!items.length) return '<div class="empty" style="padding:18px 0;">Noch keine Daten</div>';
-  const W=320,H=opt.height||150,PL=6,PR=6,PB=26,PT=14;
-  const max=Math.max(...items.map(i=>i.v),opt.min||0)||1;
-  const bw=(W-PL-PR)/items.length, gap=Math.min(7,bw*0.22);
-  const bars=items.map((it,i)=>{
-    const h=Math.max(it.v>0?2:0,(H-PT-PB)*(it.v/max));
-    const x=PL+i*bw+gap/2, y=H-PB-h, w=bw-gap;
-    const fill=it.muted?'var(--line)':(it.color||'var(--brass)');
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${fill}"/>`
-      +(it.v>0?`<text x="${(x+w/2).toFixed(1)}" y="${(y-4).toFixed(1)}" font-size="11" font-weight="800" text-anchor="middle" fill="var(--brass-bright)" font-family="monospace">${it.label!=null?it.label:it.v}</text>`:'')
-      +`<text x="${(x+w/2).toFixed(1)}" y="${H-PB+14}" font-size="10.5" font-weight="700" text-anchor="middle" fill="var(--text-dim)" font-family="monospace">${esc(it.k)}</text>`; }).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;">
-    <line x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="var(--line-soft)" stroke-width="2"/>
-    ${bars}</svg>`; }
+  if(!cats.length) return emptyBox(opt.empty||'Noch keine Daten');
+  const H=opt.height||210, PB=opt.labelBottom===false?10:26, PT=18, PL=CH_PAD, PR=CH_PAD;
+  const max=Math.max(...cats.map((c,i)=>series.reduce((a,s)=>a+(s.values[i]||0),0)))||1;
+  const bw=(CH_W-PL-PR)/cats.length, gap=Math.min(9,bw*0.24), plotH=H-PT-PB;
+  const body=cats.map((c,i)=>{
+    const x=PL+i*bw+gap/2, w=bw-gap;
+    let acc=0, segs='';
+    series.forEach(s=>{
+      const v=s.values[i]||0; if(!v) return;
+      const hh=plotH*(v/max), y=H-PB-plotH*(acc/max)-hh;
+      segs+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${hh.toFixed(1)}" fill="${s.color}"><title>${esc(s.name)}: ${v}</title></rect>`;
+      acc+=v; });
+    const topY=H-PB-plotH*(acc/max);
+    const totTxt=acc>0?`<text x="${(x+w/2).toFixed(1)}" y="${(topY-5).toFixed(1)}" font-size="11.5" font-weight="800" text-anchor="middle" fill="var(--brass-bright)" font-family="monospace">${opt.totalLabel?opt.totalLabel(acc,c):acc}</text>`:'';
+    const lbl=opt.labelBottom===false?'':`<text x="${(x+w/2).toFixed(1)}" y="${H-PB+15}" font-size="11" font-weight="700" text-anchor="middle" fill="var(--text-dim)" font-family="monospace">${esc(c.k)}</text>`;
+    const hit=c.click?`<rect x="${x.toFixed(1)}" y="${PT}" width="${w.toFixed(1)}" height="${(plotH+PB-4).toFixed(1)}" fill="transparent" style="cursor:pointer;" onclick="${c.click}"/>`:'';
+    return segs+totTxt+lbl+hit; }).join('');
+  return chartFrame(H,`<line x1="${PL}" y1="${H-PB}" x2="${CH_W-PR}" y2="${H-PB}" stroke="var(--line-soft)" stroke-width="2"/>${body}`); }
 
-const WEEKDAYS=['Mo','Di','Mi','Do','Fr','Sa','So'];
-function weekdayChart(year){
-  const fish=entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year));
-  if(!fish.length) return '<div class="empty" style="padding:18px 0;">Noch keine App-Fänge in dieser Saison</div>';
-  // Stunden im Wasser je Wochentag aus den Trips, Fänge je Wochentag aus den Einträgen
-  const cFish=[0,0,0,0,0,0,0], cMin=[0,0,0,0,0,0,0];
-  const wd=iso=>(new Date(iso).getDay()+6)%7;   // Mo=0 … So=6
-  fish.forEach(e=>{ cFish[wd(e.datetime)]++; });
+// Weiche Kurve durch Punkte (Cardinal-Spline als Bezier)
+function smoothPath(pts,startCmd){
+  if(!pts.length) return '';
+  if(pts.length===1) return `${startCmd}${pts[0][0]} ${pts[0][1]}`;
+  let d=`${startCmd}${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  const t=0.22;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||p2;
+    d+=`C${(p1[0]+(p2[0]-p0[0])*t).toFixed(1)} ${(p1[1]+(p2[1]-p0[1])*t).toFixed(1)},`
+      +`${(p2[0]-(p3[0]-p1[0])*t).toFixed(1)} ${(p2[1]-(p3[1]-p1[1])*t).toFixed(1)},`
+      +`${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`; }
+  return d; }
+
+// 100%-Flächendiagramm: Jahre waagerecht, Bänder von unten nach oben.
+function shareAreaChart(cats,series){
+  if(cats.length<2) return emptyBox('Zu wenige Jahre für einen Verlauf');
+  const H=220, PL=AREA_PL, PR=CH_PAD, PT=12, PB=26, plotH=H-PT-PB;
+  const X=i=>PL+(CH_W-PL-PR)*(i/(cats.length-1));
+  const Y=f=>H-PB-plotH*f;
+  const grid=[0,0.25,0.5,0.75,1].map(f=>
+    `<line x1="${PL}" y1="${Y(f).toFixed(1)}" x2="${CH_W-PR}" y2="${Y(f).toFixed(1)}" stroke="var(--line-soft)" stroke-width="1" ${f===0?'':'stroke-dasharray="3 3"'}/>
+     <text x="${PL-5}" y="${(Y(f)+3.5).toFixed(1)}" font-size="9" font-weight="700" text-anchor="end" fill="var(--text-dim)" font-family="monospace">${Math.round(f*100)}</text>`).join('');
+  let lower=cats.map(()=>0);
+  const bands=series.map(s=>{
+    const upper=lower.map((l,i)=>l+s.fracs[i]);
+    const up=upper.map((f,i)=>[X(i),Y(f)]);
+    const lo=lower.map((f,i)=>[X(i),Y(f)]).reverse();
+    const d=smoothPath(up,'M')+' '+smoothPath(lo,'L')+' Z';
+    lower=upper;
+    return `<path d="${d}" fill="${s.color}" fill-opacity="0.92"><title>${esc(s.name)}</title></path>`; }).join('');
+  const xlbl=cats.map((c,i)=>
+    `<text x="${X(i).toFixed(1)}" y="${H-PB+15}" font-size="11" font-weight="700" text-anchor="middle" fill="var(--text-dim)" font-family="monospace">${esc(c.k)}</text>`).join('');
+  return chartFrame(H,`${grid}${bands}${xlbl}`); }
+
+function scatterSvg(pts){
+  if(!pts.length) return emptyBox('Noch keine Daten');
+  const H=238, PL=34, PR=10, PT=26, PB=32;
+  const maxX=Math.max(...pts.map(p=>p.x))||1, maxY=Math.max(...pts.map(p=>p.y))||1;
+  const X=v=>PL+(CH_W-PL-PR)*(v/(maxX*1.08)), Y=v=>H-PB-(H-PT-PB)*(v/(maxY*1.15));
+  const maxR=Math.max(...pts.map(p=>p.r))||1;
+  const grid=[0,0.5,1].map(f=>{
+    const y=Y(maxY*1.15*f);
+    return `<line x1="${PL}" y1="${y.toFixed(1)}" x2="${CH_W-PR}" y2="${y.toFixed(1)}" stroke="var(--line-soft)" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="${PL-5}" y="${(y+4).toFixed(1)}" font-size="9.5" font-weight="700" text-anchor="end" fill="var(--text-dim)" font-family="monospace">${fmtNum(maxY*1.15*f)}</text>`; }).join('');
+  const dots=pts.map(p=>{
+    const r=5+7*Math.sqrt(p.r/maxR);
+    return `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${r.toFixed(1)}" fill="${p.color}" fill-opacity="0.8" stroke="#fff" stroke-width="2"><title>${esc(p.name)} · ${fmtNum(p.y)} Bisse/h · ${fmtDur(p.x)} · ${p.r} Fänge</title></circle>
+      <text x="${X(p.x).toFixed(1)}" y="${(Y(p.y)-r-4).toFixed(1)}" font-size="9.5" font-weight="800" text-anchor="middle" fill="var(--text)" font-family="monospace">${esc(p.short)}</text>`; }).join('');
+  return chartFrame(H,`${grid}
+    <line x1="${PL}" y1="${H-PB}" x2="${CH_W-PR}" y2="${H-PB}" stroke="var(--line)" stroke-width="2"/>
+    <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${H-PB}" stroke="var(--line)" stroke-width="2"/>
+    ${dots}
+    <text x="${(PL+(CH_W-PL-PR)/2).toFixed(1)}" y="${H-6}" font-size="10" font-weight="700" text-anchor="middle" fill="var(--text-dim)" font-family="monospace">Zeit im Wasser →</text>
+    <text x="4" y="11" font-size="10" font-weight="700" fill="var(--text-dim)" font-family="monospace">Bisse/h ↑</text>`); }
+
+function proportionBar(parts,total,h){
+  if(!total) return emptyBox('Noch keine Daten');
+  h=h||30; let acc=0;
+  const segs=parts.map(p=>{
+    const w=(CH_W-8)*(p.v/total), x=4+acc; acc+=w;
+    return `<rect x="${x.toFixed(1)}" y="6" width="${Math.max(0,w-1).toFixed(1)}" height="${h}" rx="4" fill="${p.color}"><title>${esc(p.name)}: ${p.v}</title></rect>`
+      +(w>34?`<text x="${(x+w/2).toFixed(1)}" y="${6+h/2+4.5}" font-size="12" font-weight="800" text-anchor="middle" fill="#fff" font-family="monospace">${pct(p.v,total)}%</text>`:''); }).join('');
+  return chartFrame(h+12,segs); }
+
+// ================= Zeit auf dem Wasser =================
+function minutesByHour(year){
+  const mins=new Array(24).fill(0);
   getTrips().filter(t=>t.start.slice(0,4)===String(year)).forEach(t=>{
-    const mins=Math.max(1,Math.round((new Date(t.live?nowLocalISO():t.end)-new Date(t.start))/60000));
-    cMin[wd(t.start)]+=mins; });
-  const items=WEEKDAYS.map((k,i)=>{
-    const h=cMin[i]/60, rate=h>0?cFish[i]/h:0;
-    return { k, v:Math.round(rate*100)/100, label:h>0?(Math.round(rate*10)/10).toString().replace('.',','):'', muted:h===0 }; });
-  const any=items.some(i=>i.v>0);
-  return (any?barChartSvg(items,{height:150}):'<div class="empty" style="padding:18px 0;">Noch keine Trip-Zeiten erfasst</div>')
-    +`<p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">Fänge pro Stunde auf dem Wasser. Graue Balken = an dem Wochentag noch nicht geangelt.</p>`; }
+    const end=new Date(t.live?nowLocalISO():t.end);
+    let cur=new Date(t.start), guard=0;
+    if(!(end>cur)) return;
+    while(cur<end&&guard++<2000){
+      const nxt=new Date(cur); nxt.setMinutes(0,0,0); nxt.setHours(nxt.getHours()+1);
+      const stop=nxt<end?nxt:end;
+      mins[cur.getHours()]+=(stop-cur)/60000;
+      cur=stop; } });
+  return mins; }
 
-// ---------- Karten der Saison-Ansicht ----------
-function card(title,body,note){
-  return `<div class="card"><h2>${title}</h2>${note?`<p style="font-size:11.5px;color:var(--text-dim);margin:-4px 0 10px;font-weight:600;">${note}</p>`:''}${body}</div>`; }
-function kvRows(arr,fmt){
-  return arr.length?arr.map(([k,v])=>`<div class="kv"><span>${esc(k)}</span><b>${fmt?fmt(v,k):v}</b></div>`).join('')
-    :'<div class="empty" style="padding:18px 0;">Noch keine Daten</div>'; }
+function daytimeChart(year){
+  const fish=entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year));
+  const mins=minutesByHour(year);
+  if(!fish.length||!mins.some(m=>m>0)) return emptyBox('Noch keine Trips in dieser Saison');
+  const cnt=new Array(24).fill(0);
+  fish.forEach(e=>{ cnt[new Date(e.datetime).getHours()]++; });
+  const lo=Math.max(0,mins.findIndex(m=>m>0)), hi=23-[...mins].reverse().findIndex(m=>m>0);
+  const cats=[],vals=[];
+  for(let h=lo;h<=hi;h++){ cats.push({k:h%3===0?pad(h):''});
+    vals.push(mins[h]>0?Math.round(cnt[h]/(mins[h]/60)*10)/10:0); }
+  return stackedBarSvg(cats,[{name:'Fänge/h',color:BROWN_MID,values:vals}],
+    {height:180,totalLabel:v=>v>0?fmtNum(v):''}); }
 
-function speciesRows(bySpecies,total){
-  const arr=Object.entries(bySpecies).sort((a,b)=>b[1]-a[1]||bySpeciesOrder(a[0],b[0]));
-  if(!arr.length) return '<div class="empty" style="padding:18px 0;">Noch keine Daten</div>';
-  return arr.map(([k,v])=>`<div class="sp-row">${fishIcon(k,44)}<span>${esc(k)}</span>
-    <b>${v}× · ${pct(v,total)}%</b></div>`).join(''); }
+// ================= Größen & Tiefen =================
+function sizeHistogram(year){
+  const fish=entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year)&&num(e.fishlen)!=null);
+  if(!fish.length) return emptyBox('Noch keine Längen erfasst');
+  const lens=fish.map(e=>num(e.fishlen));
+  const lo=Math.floor(Math.min(...lens)/10)*10, hi=Math.floor(Math.max(...lens)/10)*10;
+  const buckets=[]; for(let b=lo;b<=hi;b+=10) buckets.push(b);
+  const sps=[...new Set(fish.map(e=>e.species||'Unbekannt'))].sort(bySpeciesOrder);
+  const series=sps.map(sp=>({ name:sp, color:SPECIES_COLOR[sp]||NEUTRAL,
+    values:buckets.map(b=>fish.filter(e=>(e.species||'Unbekannt')===sp&&num(e.fishlen)>=b&&num(e.fishlen)<b+10).length) }));
+  return stackedBarSvg(buckets.map(b=>({k:b+''})),series,{height:180})
+    +legendRow(series.map(s=>({name:s.name,color:s.color}))); }
 
-const bySpeciesOrder=(a,b)=>{
-  const ia=SPECIES_ORDER.indexOf(a), ib=SPECIES_ORDER.indexOf(b);
-  return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b); };
-function recordRows(maxBySpecies){
-  const arr=Object.entries(maxBySpecies).sort((a,b)=>bySpeciesOrder(a[0],b[0]));
-  if(!arr.length) return '<div class="empty" style="padding:18px 0;">Noch keine Größen erfasst</div>';
-  return arr.map(([sp,m])=>`<div class="sp-row">${fishIcon(sp,44)}<span>${esc(sp)}</span>
-    <b>${fmtD(m.cm)} cm · ${esc(m.who.join(', '))}</b></div>`).join(''); }
+function depthHistogram(year){
+  const db={}; entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year)).forEach(e=>{
+    const d=num(e.depth); if(d!=null){ const k=depthBucket(d); db[k]=(db[k]||0)+1; } });
+  const order=['0–2','2–4','4–6','6–8','8–12','12+'].filter(k=>db[k]);
+  if(!order.length) return emptyBox('Noch keine Tiefen erfasst');
+  return stackedBarSvg(order.map(k=>({k})),
+    [{name:'Fänge',color:BROWN_MID,values:order.map(k=>db[k])}],{height:180}); }
 
-function baitPerformanceRows(year){
-  const mins=baitMinutesForYear(year);
-  const hits={};
+// ================= Fang-Kalender (Saison = knapp zwei Wochen) =================
+function catchCalendar(year){
+  const ymd=iso=>iso.slice(0,10);
+  const days={};
+  getTrips().filter(t=>t.start.slice(0,4)===String(year))
+    .forEach(t=>{ const d=ymd(t.start); days[d]=days[d]||{fish:0}; });
+  entries.filter(e=>e.type==='fisch'&&e.datetime.slice(0,4)===String(year))
+    .forEach(e=>{ const d=ymd(e.datetime); days[d]=days[d]||{fish:0}; days[d].fish++; });
+  const keys=Object.keys(days).sort();
+  if(!keys.length) return emptyBox('Noch keine Trips in dieser Saison');
+  const start=new Date(keys[0]+'T12:00'), last=new Date(keys[keys.length-1]+'T12:00');
+  // Ab dem ersten Angeltag in Siebener-Reihen – passt genau auf eine Zwei-Wochen-Saison
+  let n=Math.round((last-start)/86400000)+1;
+  n=Math.max(14,Math.ceil(n/7)*7);
+  const rows=n/7, maxF=Math.max(1,...Object.values(days).map(d=>d.fish));
+  const PLc=4, PTc=14, gap=3;
+  const cell=Math.floor((CH_W-PLc*2-gap*6)/7);
+  const H=PTc+rows*(cell+gap)+14;
+  const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  let sq='',hdr='';
+  for(let c=0;c<7;c++){
+    const d=new Date(start); d.setDate(d.getDate()+c);
+    hdr+=`<text x="${PLc+c*(cell+gap)+cell/2}" y="${PTc-3}" font-size="9" font-weight="700" text-anchor="middle" fill="var(--text-dim)" font-family="monospace">${WD[d.getDay()]}</text>`; }
+  for(let i=0;i<n;i++){
+    const d=new Date(start); d.setDate(d.getDate()+i);
+    const k=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    const rec=days[k], x=PLc+(i%7)*(cell+gap), y=PTc+Math.floor(i/7)*(cell+gap);
+    const fill=rec?(rec.fish===0?'#E4DCCB':`rgba(92,58,6,${(0.25+0.75*(rec.fish/maxF)).toFixed(2)})`):'var(--surface-2)';
+    sq+=`<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="3" fill="${fill}"${rec?` stroke="${BROWN_MID}" stroke-width="1.5"`:''}>
+        <title>${k.split('-').reverse().join('.')}${rec?` · ${rec.fish} Fänge`:''}</title></rect>
+      <text x="${x+cell/2}" y="${y+cell/2+4}" font-size="9.5" font-weight="800" text-anchor="middle" font-family="monospace"
+        fill="${rec&&rec.fish/maxF>0.55?'#fff':'var(--text-dim)'}">${d.getDate()}</text>`; }
+  return chartFrame(H,hdr+sq); }
+
+// ================= Rekorde =================
+function recordCards(maxBySpecies){
+  const arr=SPECIES_ORDER.filter(sp=>maxBySpecies[sp]).map(sp=>[sp,maxBySpecies[sp]])
+    .concat(Object.entries(maxBySpecies).filter(([sp])=>!SPECIES_ORDER.includes(sp)));
+  if(!arr.length) return emptyBox('Noch keine Größen erfasst');
+  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(arr.length,3)},1fr);gap:8px;">`
+    +arr.map(([sp,m])=>`<div style="text-align:center;padding:10px 4px;border:2px solid var(--line-soft);border-radius:9px;background:var(--surface-2);">
+        <div style="color:var(--brass);line-height:0;">${fishIcon(sp,58)}</div>
+        <div style="font-family:var(--font-mono);font-size:19px;font-weight:800;color:var(--brass-bright);margin-top:8px;">${fmtD(m.cm)}<span style="font-size:11px;"> cm</span></div>
+        <div style="font-size:11.5px;font-weight:700;margin-top:3px;line-height:1.3;">${esc(m.who.join(', '))}</div>
+        <div style="font-family:var(--font-mono);font-size:10.5px;font-weight:700;color:var(--text-dim);">${m.year||''}</div>
+      </div>`).join('')+`</div>`; }
+
+// ================= Wer hat was gefangen =================
+function whoCaughtWhat(s){
+  const b=stackBuckets(s.byAngler);
+  const parts=[...STACK_ORDER.filter(n=>b[n]).map(n=>({name:n,v:b[n],color:ANGLER_COLOR[n]})),
+    ...(b.Andere?[{name:'Andere',v:b.Andere,color:NEUTRAL}]:[])];
+  if(!parts.length) return emptyBox('Noch keine Fänge');
+  // "Andere" zu einer Sammelzeile zusammenfassen
+  const rowsFor=name=>{
+    if(name!=='Andere') return s.byAnglerSpecies[name]||{};
+    const agg={};
+    Object.entries(s.byAnglerSpecies).forEach(([who,sp])=>{
+      if(STACK_ORDER.includes(who)) return;
+      Object.entries(sp).forEach(([k,v])=>{ agg[k]=(agg[k]||0)+v; }); });
+    return agg; };
+  const rows=parts.map(p=>{
+    const sp=rowsFor(p.name);
+    const chips=Object.entries(sp).sort((a,c)=>bySpeciesOrder(a[0],c[0])).map(([k,v])=>
+      `<span style="display:inline-flex;align-items:center;gap:3px;color:${SPECIES_COLOR[k]||NEUTRAL};">
+        ${fishIcon(k,40)}<span style="font-family:var(--font-mono);font-size:12.5px;font-weight:800;color:var(--text);">×${v}</span></span>`).join('');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:2px dashed var(--line-soft);">
+      <div style="flex:0 0 74px;display:flex;align-items:center;gap:6px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:${p.color};flex:0 0 auto;"></span>
+        <span style="font-size:12.5px;font-weight:800;">${esc(p.name)}</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:1;">${chips||'<span style="font-size:11.5px;color:var(--text-dim);">–</span>'}</div>
+      <b style="font-family:var(--font-mono);font-size:14px;">${p.v}</b></div>`; }).join('');
+  return proportionBar(parts,s.total)+`<div style="margin-top:6px;">${rows}</div>`; }
+
+// ================= Köder =================
+function baitRows(year){
+  const mins=baitMinutesForYear(year), hits={};
   entries.filter(e=>(e.type==='biss'||e.type==='fisch')&&e.datetime.slice(0,4)===String(year))
     .forEach(e=>{ const k=baitKey({type:e.baittype,color:e.baitcolor}); if(!k) return;
       hits[k]=hits[k]||{bites:0,fish:0}; hits[k].bites++; if(e.type==='fisch') hits[k].fish++; });
-  const keys=[...new Set([...Object.keys(mins),...Object.keys(hits)])];
-  if(!keys.length) return '<div class="empty" style="padding:18px 0;">Noch keine Köderdaten</div>';
-  const rows=keys.map(k=>{
+  return [...new Set([...Object.keys(mins),...Object.keys(hits)])].map(k=>{
     const m=mins[k]||0, h=hits[k]||{bites:0,fish:0};
     return { k, m, bites:h.bites, fish:h.fish, rate:m>0?h.bites/(m/60):null }; })
-    .sort((a,b)=>(b.rate??-1)-(a.rate??-1)||b.bites-a.bites);
+    .sort((a,b)=>(b.rate??-1)-(a.rate??-1)||b.bites-a.bites); }
+const SCATTER_COLORS=[BROWN_DARK,BROWN_MID,BROWN_LIGHT,'#7A6A4F','#A8763A','#6E5A2E','#C7A97A','#4A3A18','#93805E'];
+function baitScatter(year){
+  const rows=baitRows(year).filter(r=>r.m>0);
+  if(!rows.length) return emptyBox('Noch keine Köderzeiten erfasst');
+  const pts=rows.map((r,i)=>({ name:r.k, short:r.k.split(' · ').pop().slice(0,7),
+    x:r.m, y:r.rate, r:Math.max(r.fish,0.4), color:SCATTER_COLORS[i%SCATTER_COLORS.length] }));
+  return scatterSvg(pts)+`<p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">Punktgröße = Fänge.</p>`; }
+function baitNumbers(year){
+  const rows=baitRows(year);
+  if(!rows.length) return emptyBox('Noch keine Köderdaten');
   return rows.map(r=>`<div class="kv" style="align-items:flex-start;">
-    <span>${esc(r.k)}<br><span style="font-size:11px;">${r.m>0?fmtDur(r.m)+' im Wasser':'Zeit unbekannt'} · ${r.fish} ${r.fish===1?'Fang':'Fänge'}</span></span>
-    <b>${r.rate!=null?(Math.round(r.rate*10)/10).toString().replace('.',',')+' Bisse/h':'–'}</b></div>`).join(''); }
+    <span>${esc(r.k)}<br><span style="font-size:11px;">${r.m>0?fmtDur(r.m):'Zeit unbekannt'} · ${r.fish} ${r.fish===1?'Fang':'Fänge'}</span></span>
+    <b>${r.rate!=null?fmtNum(r.rate)+' Bisse/h':'–'}</b></div>`).join(''); }
 
-function depthCardBody(){
-  const dp=depthPoints();
-  if(!dp.length) return '<div class="diag">Noch keine Tiefenmessungen. Setze im Trip die Wassertiefe – jeder Punkt landet in der Karte.</div>';
-  const dd=dp.map(p=>p.depth);
-  const c=entries.filter(e=>e.type==='fisch');
-  const db={}; c.forEach(e=>{ const d=num(e.depth); if(d!=null){ const k=depthBucket(d); db[k]=(db[k]||0)+1; } });
-  const buckets=Object.entries(db).sort((a,b)=>b[1]-a[1]);
-  return `<div class="diag" style="margin-bottom:10px;">
-      <div>Messpunkte: <span class="ok">${dp.length}</span></div>
-      <div>Tiefenbereich: ${fmtD(Math.min(...dd))} – ${fmtD(Math.max(...dd))} m</div>
-      <div>Ø Tiefe: ${fmtD(Math.round(dd.reduce((a,x)=>a+x,0)/dd.length*10)/10)} m</div></div>
-    ${buckets.length?`<div style="border-top:2px dashed var(--line-soft);padding-top:10px;">
-      ${kvRows(buckets,v=>v+' Fänge')}</div>`:''}`; }
+// ================= Karten-Helfer =================
+function card(title,body,note){
+  return `<div class="card"><h2>${title}</h2>${note?`<p style="font-size:11.5px;color:var(--text-dim);margin:-4px 0 10px;font-weight:600;">${note}</p>`:''}${body}</div>`; }
+function drillCard(title,body,numbers,note){
+  return `<div class="card"><h2>${title}</h2>${note?`<p style="font-size:11.5px;color:var(--text-dim);margin:-4px 0 10px;font-weight:600;">${note}</p>`:''}${body}
+    ${numbers?`<details style="margin-top:12px;"><summary style="cursor:pointer;font-family:var(--font-mono);font-size:11px;font-weight:800;color:var(--water);list-style:none;">▾ Zahlen</summary>
+      <div style="margin-top:10px;">${numbers}</div></details>`:''}</div>`; }
+function kvRows(arr,fmt){
+  return arr.length?arr.map(([k,v])=>`<div class="kv"><span>${esc(k)}</span><b>${fmt?fmt(v,k):v}</b></div>`).join('')
+    :emptyBox('Noch keine Daten'); }
+const bySpeciesOrder=(a,b)=>{
+  const ia=SPECIES_ORDER.indexOf(a), ib=SPECIES_ORDER.indexOf(b);
+  return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b); };
 
-// ---------- Ansicht: Diese Saison ----------
-function renderSeasonStats(year){
-  const s=yearStats(year);
-  const trips=getTrips().filter(t=>t.start.slice(0,4)===String(year));
-  const appNote=s.hasArchive&&s.cutoff
-    ? `Saison-Gesamtzahlen inkl. der bis zum ${fmtDate(s.cutoff)} in der Fischliste geführten Fänge.`
-    : '';
-  const overview=`<div class="stats-grid">
-      <div class="stat"><div class="n">${s.total}</div><div class="l">Fänge</div></div>
-      <div class="stat"><div class="n">${s.kept}</div><div class="l">Mitgenommen</div></div>
-      <div class="stat"><div class="n">${s.keptRate}%</div><div class="l">Entnahmequote</div></div>
-      <div class="stat"><div class="n">${trips.length}</div><div class="l">Trips</div></div>
-    </div>
-    <div class="card"><h2>In der App erfasst</h2>
-      <div class="kv"><span>Fänge über die App</span><b>${s.appFish} von ${s.total}</b></div>
-      <div class="kv"><span>Bisse</span><b>${s.bites}</b></div>
-      <div class="kv"><span>Biss → Fang</span><b>${pct(s.appFish,s.bites)}%</b></div>
-      ${appNote?`<p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">${appNote}</p>`:''}</div>`;
-  return overview
-    + card('Rekorde '+year,recordRows(s.maxBySpecies))
-    + card('Arten-Mix',speciesRows(s.bySpecies,s.total))
-    + card('Angler-Vergleich',kvRows(Object.entries(s.byAngler).sort((a,b)=>b[1]-a[1]),
-        (v)=>`${v}× · ${pct(v,s.total)}%`))
-    + card('Köder-Performance',baitPerformanceRows(year),
-        'Nur aus App-Trips – Zeiten aus Trips vor der Umstellung fehlen.')
-    + card('Fänge pro Stunde nach Wochentag',weekdayChart(year))
-    + card('Tiefenkarte',depthCardBody(),'Über alle Jahre – Tiefen gibt es nur aus der App.'); }
-
-// ---------- Ansicht: Alle Jahre ----------
+// ================= Ebene 1: Alle Jahre =================
 function renderAllYearsStats(){
-  const years=allYears();
-  const stats=years.map(y=>yearStats(y));
-  const cur=new Date().getFullYear();
-  const totalsChart=barChartSvg(stats.map(s=>({k:String(s.year).slice(2),v:s.total,muted:s.year===cur})),{height:170});
-  // Arten je Jahr
-  const speciesTable=SPECIES_ORDER.map(sp=>{
-    const cells=stats.map(s=>`<td style="text-align:right;padding:3px 0 3px 10px;">${s.bySpecies[sp]||0}</td>`).join('');
-    return `<tr><td style="padding:3px 0;font-weight:700;">${esc(sp)}</td>${cells}</tr>`; }).join('');
-  // Angler je Jahr + YoY
-  const names=[...new Set(stats.flatMap(s=>Object.keys(s.byAngler)))]
-    .sort((a,b)=>stats.reduce((n,s)=>n+(s.byAngler[b]||0),0)-stats.reduce((n,s)=>n+(s.byAngler[a]||0),0));
-  const anglerRows=names.map(n=>{
-    const cells=stats.map(s=>{
-      const v=s.byAngler[n]||0;
-      return `<td style="text-align:right;padding:3px 0 3px 10px;${v?'':'color:var(--line);'}">${v}</td>`; }).join('');
-    return `<tr><td style="padding:3px 0;font-weight:700;">${esc(n)}</td>${cells}</tr>`; }).join('');
-  const head=`<tr><td></td>${stats.map(s=>`<td style="text-align:right;padding:0 0 4px 10px;color:var(--text-dim);font-size:11px;">${String(s.year).slice(2)}</td>`).join('')}</tr>`;
-  const tbl=b=>`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:12.5px;">${head}${b}</table></div>`;
-  // YoY des laufenden Jahres gegen Vorjahr
-  const last=stats[stats.length-1], prev=stats[stats.length-2];
-  const yoyRows=prev?names.filter(n=>(prev.byAngler[n]||0)||(last.byAngler[n]||0)).map(n=>{
-    const a=prev.byAngler[n]||0,b=last.byAngler[n]||0;
-    const d=a?Math.round((b/a-1)*100):null;
-    return [n,`${b} statt ${a} · ${d==null?'neu':(d>0?'+':'')+d+'%'}`]; }):[];
+  const years=allYears(), stats=years.map(y=>yearStats(y));
+  const n=stats.length;
+  const buckets=stats.map(s=>stackBuckets(s.byAngler));
+  const series=[...STACK_ORDER.map(nm=>({name:nm,color:ANGLER_COLOR[nm],values:buckets.map(b=>b[nm])})),
+    {name:'Andere',color:NEUTRAL,values:buckets.map(b=>b.Andere)}];
+  const cats=stats.map(s=>({k:String(s.year).slice(2),click:`statDrill(${s.year})`}));
+  const totalsChart=stackedBarSvg(cats,series,{height:230})+legendRow(series.map(s=>({name:s.name,color:s.color})));
+  const totalsNums=alignedNumbers(n,[...series.map(s=>({label:s.name,color:s.color,values:s.values})),
+    {label:'Gesamt',values:stats.map(s=>s.total)}]);
+  // Artenanteil als 100%-Fläche
+  const spSeries=SPECIES_ORDER.map(sp=>({name:sp,color:SPECIES_COLOR[sp],
+    fracs:stats.map(s=>s.total?(s.bySpecies[sp]||0)/s.total:0)}));
+  const shareChart=shareAreaChart(cats,spSeries)+legendRow(spSeries.map(s=>({name:s.name,color:s.color})));
+  const shareNums=alignedNumbers(n,SPECIES_ORDER.map(sp=>({label:sp,color:SPECIES_COLOR[sp],
+    values:stats.map(s=>pct(s.bySpecies[sp]||0,s.total)+'%')})),'points');
   // Allzeit-Rekorde
   const allMax={};
   stats.forEach(s=>Object.entries(s.maxBySpecies).forEach(([sp,m])=>{
-    const cur=allMax[sp];
-    if(!cur||m.cm>cur.cm) allMax[sp]={cm:m.cm,who:[...m.who],year:s.year};
-    else if(m.cm===cur.cm) m.who.forEach(w=>{ if(!cur.who.includes(w)) cur.who.push(w); }); }));
-  const recRows=Object.entries(allMax).sort((a,b)=>b[1].cm-a[1].cm)
-    .map(([sp,m])=>`<div class="sp-row">${fishIcon(sp,44)}<span>${esc(sp)}</span>
-      <b>${fmtD(m.cm)} cm · ${esc(m.who.join(', '))} · ${m.year}</b></div>`).join('');
-  const keptRows=stats.map(s=>[String(s.year),`${s.kept} von ${s.keptKnown} · ${s.keptRate}%`]);
-  return card('Fänge pro Jahr',totalsChart,'Grauer Balken = laufende Saison.')
-    + card('Arten je Jahr',tbl(speciesTable))
-    + card('Angler je Jahr',tbl(anglerRows))
-    + (yoyRows.length?card(`Veränderung ${last.year} zu ${prev.year}`,kvRows(yoyRows),
-        last.year===cur?`${cur} läuft noch – der Vergleich gegen die volle Saison ${prev.year} hinkt naturgemäß.`:''):'')
-    + card('Allzeit-Rekorde',recRows||'<div class="empty" style="padding:18px 0;">Noch keine Daten</div>')
-    + card('Entnahme je Jahr',kvRows(keptRows)); }
+    const c=allMax[sp];
+    if(!c||m.cm>c.cm) allMax[sp]={cm:m.cm,who:[...m.who],year:s.year};
+    else if(m.cm===c.cm) m.who.forEach(w=>{ if(!c.who.includes(w)) c.who.push(w); }); }));
+  const keptChart=stackedBarSvg(stats.map(s=>({k:String(s.year).slice(2),kept:s.kept})),
+    [{name:'Entnahme',color:BROWN_MID,values:stats.map(s=>s.keptRate)}],
+    {height:170,totalLabel:(v,c)=>c.kept+' · '+v+'%'});
+  const keptNums=alignedNumbers(n,[{label:'Mitgenommen',color:BROWN_MID,values:stats.map(s=>s.kept)},
+    {label:'Quote',values:stats.map(s=>s.keptRate+'%')}]);
+  return `<p style="font-size:12.5px;color:var(--text-dim);margin:0 0 12px;font-weight:600;">Tippe auf ein Jahr für die Saison.</p>`
+    + drillCard('Fänge pro Jahr',totalsChart,totalsNums)
+    + drillCard('Artenanteil',shareChart,shareNums)
+    + card('Allzeit-Rekorde',recordCards(allMax))
+    + drillCard('Entnahme',keptChart,keptNums); }
 
-// ---------- Dispatcher ----------
-let statMode='season';
+// ================= Ebene 2: Ein Jahr =================
+function renderSeasonStats(year){
+  const s=yearStats(year);
+  const pair=(a,b)=>`<div class="pair">${a}${b}</div>`;
+  return `<div class="stats-grid">
+      <div class="stat"><div class="n">${s.total}</div><div class="l">Fänge</div></div>
+      <div class="stat"><div class="n">${s.kept}<span style="font-size:15px;color:var(--text-dim);"> · ${s.keptRate}%</span></div><div class="l">Mitgenommen</div></div>
+    </div>`
+    + card('Rekorde',recordCards(s.maxBySpecies))
+    + card('Wer hat was gefangen',whoCaughtWhat(s))
+    + pair(card('Größen',sizeHistogram(year)),card('Tiefen',depthHistogram(year)))
+    + drillCard('Köder',baitScatter(year),baitNumbers(year))
+    + pair(card('Kalender',catchCalendar(year)),card('Beißzeiten',daytimeChart(year))); }
+
+// ================= Navigation =================
+let statYear=null;
+window.statDrill=function(y){ statYear=y; renderStatsTab(); window.scrollTo(0,0); };
+window.statBackToYears=function(){ statYear=null; renderStatsTab(); window.scrollTo(0,0); };
 function renderStatsTab(){
-  const sv=document.getElementById('statSeasonView'), av=document.getElementById('statAllYearsView');
-  if(!sv||!av) return;
-  const year=new Date().getFullYear();
-  const yl=document.getElementById('statSeasonYear'); if(yl) yl.textContent=year;
-  document.getElementById('statSeason').classList.toggle('sel',statMode==='season');
-  document.getElementById('statAllYears').classList.toggle('sel',statMode==='all');
-  sv.style.display=statMode==='season'?'block':'none';
-  av.style.display=statMode==='all'?'block':'none';
-  if(statMode==='season') sv.innerHTML=renderSeasonStats(year);
-  else av.innerHTML=renderAllYearsStats(); }
-document.getElementById('statSeason').addEventListener('click',()=>{ statMode='season'; renderStatsTab(); });
-document.getElementById('statAllYears').addEventListener('click',()=>{ statMode='all'; renderStatsTab(); });
+  const nav=document.getElementById('statNav'), body=document.getElementById('statBody');
+  if(!nav||!body) return;
+  if(statYear==null){
+    nav.innerHTML=`<h2 style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--sage);margin:0 0 12px;font-weight:700;">Alle Jahre</h2>`;
+    body.innerHTML=renderAllYearsStats();
+  } else {
+    nav.innerHTML=`<div class="btn-row" style="margin-bottom:12px;">
+      <button class="btn" onclick="statBackToYears()" style="flex:0 0 auto;padding:11px 14px;">‹ Alle Jahre</button>
+      <span style="font-family:var(--font-mono);font-size:17px;font-weight:800;margin-left:4px;">${statYear}</span></div>`;
+    body.innerHTML=renderSeasonStats(statYear); } }
 
 checkLock();
 </script>
