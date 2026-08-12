@@ -341,12 +341,9 @@
   </section>
 
   <section id="tab-baits">
-    <div class="card">
-      <h2>Köderkiste</h2>
-      <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px;font-weight:600;">
-        Nur Modell und Typ – Länge und Gewicht wählst du beim Anködern.</p>
-      <div class="bait-grid" id="baitBoxGrid"></div>
-    </div>
+    <p style="font-size:13px;color:var(--text-dim);margin:0 0 12px;font-weight:600;">
+      Nur Modell und Typ – Länge und Gewicht wählst du beim Anködern.</p>
+    <div id="baitGroups"></div>
     <button class="btn" id="uploadBaitsBtn" style="margin-bottom:14px;">⬆ Lokale Köder dieses Geräts hochladen</button>
   </section>
 
@@ -406,6 +403,7 @@ import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/1
 const ACCESS_CODE='valle';
 const K_UNLOCKED='anglog_unlocked', K_MIGRATED='anglog_migrated_fs_v1', K_TRIP='anglog_tripState';
 const K_ENTRIES_LEGACY='anglog_entries', K_BAITS_LEGACY='anglog_baitBox';
+const K_BAITGROUPS='anglog_baitGroups';
 const firebaseConfig={ apiKey:"AIzaSyCoaeE2C1dILXd30ndHeUa0rkhQGVniUJM", authDomain:"fish-ahoi.firebaseapp.com",
   projectId:"fish-ahoi", storageBucket:"fish-ahoi.firebasestorage.app",
   messagingSenderId:"404552637615", appId:"1:404552637615:web:0b1eacbf9a30bb2bd4485a" };
@@ -482,7 +480,7 @@ let openTripId=null, lastAutoAt=Date.now();
 let timerHandle=null, wakeLock=null, lastAddedId=null;
 let diag={geoLast:'–',wxLast:'–'};
 let pendingEvent=null, showDepthLayer=false, seekLayer='routes', seekMapObj=null;
-let waypoints=[];
+let waypoints=[], baitGroupOpen={};
 const wheelVals={};
 
 // ================= FISCH-SILHOUETTEN =================
@@ -636,7 +634,9 @@ async function boot(){
       lastWeight=s.lastWeight||DEFAULT_WEIGHT; lastLength=s.lastLength||DEFAULT_LENGTH;
       lastKnownLoc=s.lastKnownLoc||lastKnownLoc; lastKnownWx=Object.assign(lastKnownWx,s.lastKnownWx||{});
       if(technique&&technique.type==='Stehend') technique.type='Werfen'; } }catch(e){}
-  renderDiag(); renderAnglerChips(); renderSetupBaits();
+  try{ const r=await store.get(K_BAITGROUPS);
+    if(r&&r.value) baitGroupOpen=JSON.parse(r.value)||{}; }catch(e){}
+  renderDiag(); renderAnglerChips(); renderSetupBaits(); renderBaitBox();
   renderTripList(); renderStatsTab(); renderTripView();
   if(trip){ startTimer(); requestWake(); }
   try{
@@ -806,12 +806,37 @@ function baitTileHtml(b){
   const img=b.photo?`<img src="${b.photo}" alt="">`:`<div class="ph">🎣</div>`;
   return `<div class="bait-tile" data-bid="${b.id}">${img}
     <div class="lbl">${esc(b.color||b.type)}</div><div class="sm">${esc(b.type)}</div></div>`; }
+// Köderkiste nach Typ gruppiert. Gummifische oben, Wobbler darunter, danach alles
+// Weitere. Innerhalb einer Gruppe natürlich sortiert, damit "Legende 2" vor
+// "Legende 10" steht. Auf-/zugeklappter Zustand überlebt Tabwechsel und Neustart.
+const BAIT_GROUP_ORDER=['Gummifisch','Wobbler'];
+const BAIT_GROUP_LABEL={Gummifisch:'Gummifische',Wobbler:'Wobbler'};
+const baitCollator=new Intl.Collator('de',{numeric:true,sensitivity:'base'});
+const baitSortKey=b=>(b.color||b.type||'').trim();
+function baitGroupTypes(){
+  const present=[...new Set(baitBox.map(b=>b.type).filter(Boolean))];
+  const rest=present.filter(t=>!BAIT_GROUP_ORDER.includes(t)).sort(baitCollator.compare);
+  return [...BAIT_GROUP_ORDER,...rest]; }
 function renderBaitBox(){
-  const g=document.getElementById('baitBoxGrid');
-  g.innerHTML=baitBox.map(baitTileHtml).join('')
-    +`<div class="bait-tile add" id="addBaitTile"><div style="font-size:26px;">＋</div>Köder<br>anlegen</div>`;
-  g.querySelectorAll('.bait-tile[data-bid]').forEach(t=>t.addEventListener('click',()=>editBait(t.dataset.bid)));
-  document.getElementById('addBaitTile').addEventListener('click',()=>editBait(null)); }
+  const wrap=document.getElementById('baitGroups'); if(!wrap) return;
+  wrap.innerHTML=baitGroupTypes().map(type=>{
+    const list=baitBox.filter(b=>b.type===type)
+      .sort((a,b)=>baitCollator.compare(baitSortKey(a),baitSortKey(b)));
+    const open=baitGroupOpen[type]!==false;
+    return `<details class="card" data-group="${esc(type)}"${open?' open':''}>
+      <summary>${esc(BAIT_GROUP_LABEL[type]||type)}
+        <span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);">${list.length}</span></summary>
+      <div class="cardBody"><div class="bait-grid">
+        ${list.map(baitTileHtml).join('')}
+        <div class="bait-tile add" data-addtype="${esc(type)}"><div style="font-size:26px;">＋</div>Köder<br>anlegen</div>
+      </div></div></details>`; }).join('');
+  wrap.querySelectorAll('.bait-tile[data-bid]').forEach(t=>
+    t.addEventListener('click',()=>editBait(t.dataset.bid)));
+  wrap.querySelectorAll('.bait-tile[data-addtype]').forEach(t=>
+    t.addEventListener('click',()=>editBait(null,t.dataset.addtype)));
+  wrap.querySelectorAll('details[data-group]').forEach(d=>d.addEventListener('toggle',()=>{
+    baitGroupOpen[d.dataset.group]=d.open;
+    store.set(K_BAITGROUPS,JSON.stringify(baitGroupOpen)); })); }
 let photoCallback=null;
 document.getElementById('photoInput').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f||!photoCallback){ e.target.value=''; return; }
@@ -830,8 +855,9 @@ function openModal(html){
   r.querySelector('.modal').addEventListener('click',e=>{ if(e.target.classList.contains('modal')) closeModal(); }); }
 function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
 
-function editBait(id){
-  const b=id?Object.assign({},baitBox.find(x=>x.id===id)):{id:uid(),type:'Gummifisch',color:'',photo:null};
+function editBait(id,presetType){
+  const b=id?Object.assign({},baitBox.find(x=>x.id===id))
+    :{id:uid(),type:presetType||'Gummifisch',color:'',photo:null};
   openModal(`<h3>${id?'Köder bearbeiten':'Neuer Köder'}</h3>
     <div class="card">
       <div class="field"><label>Foto</label>
@@ -1010,7 +1036,9 @@ document.getElementById('startTripBtn').addEventListener('click',async ev=>{
   const btn=ev.target; btn.disabled=true; btn.textContent='Starte…';
   waterTemp=document.getElementById('s-watertemp').value||null;
   const snap=await captureSnapshot(); const now=Date.now();
-  trip={id:'t'+now,startTime:now}; technique={type:setupTechnique,start:now};
+  // Zufallsanteil, damit zwei Boote beim gleichzeitigen Start nicht dieselbe ID bekommen
+  trip={id:'t'+now+Math.random().toString(36).slice(2,6),startTime:now};
+  technique={type:setupTechnique,start:now};
   anglers=setupSelected.map(n=>({name:n,bait:Object.assign({},setupBaits[n],{start:now})}));
   paused=false; secondsLeft=300; lastAutoAt=Date.now();
   currentDepth=null; depthSource='';
@@ -1359,7 +1387,13 @@ function getTrips(){
   entries.forEach(e=>{ if(!e.tripId) return; (m[e.tripId]=m[e.tripId]||[]).push(e); });
   return Object.entries(m).map(([id,list])=>{
     const s=[...list].sort((a,b)=>a.datetime.localeCompare(b.datetime));
-    return {id,entries:s,start:s[0].datetime,end:s[s.length-1].datetime,live:trip&&trip.id===id}; })
+    const own=!!(trip&&trip.id===id);
+    // Auch ein Trip vom anderen Boot gilt als laufend: kein 'ende' und frischer Eintrag.
+    // Die Frist verhindert, dass abgebrochene Trips für immer als live gelten.
+    const offen=!s.some(e=>e.type==='ende');
+    const frisch=(Date.now()-new Date(s[s.length-1].datetime))/60000 < 45;
+    return {id,entries:s,start:s[0].datetime,end:s[s.length-1].datetime,
+            live:own||(offen&&frisch), fremd:!own&&offen&&frisch}; })
     .sort((a,b)=>b.start.localeCompare(a.start)); }
 
 // Rekonstruiert die Ködersegmente eines Anglers innerhalb eines Trips.
@@ -1430,7 +1464,7 @@ function renderTripList(){
     return `<div class="trip-card ${t.live?'live':''}" onclick="openTrip('${t.id}')">
       <div class="trip-date">${fmtDate(t.start)}</div>
       <div class="trip-time">${fmtHM(t.start)}–${t.live?'läuft':fmtHM(t.end)} · ${Math.floor(st.durMin/60)}h ${st.durMin%60}min</div>
-      <div class="trip-badges">${t.live?'<span class="badge live">● LIVE</span>':''}
+      <div class="trip-badges">${t.live?`<span class="badge live">● ${t.fremd?'LÄUFT (anderes Gerät)':'LIVE'}</span>`:''}
         ${badges||'<span class="badge plain">keine Fänge</span>'}
         <span class="badge plain">〰 ${st.bites.length}</span>
         ${st.dist>0?`<span class="badge plain">${(st.dist/1000).toFixed(1)} km</span>`:''}
@@ -1617,6 +1651,31 @@ async function renderOfflineBox(progress){
   if(d) d.addEventListener('click',prefetchTiles);
   if(r) r.addEventListener('click',clearTileCache); }
 
+// ---------- Papier-Seekarte als Ebene ----------
+// Aus drei Fotos der gedruckten Tiefenkarte entzerrt und auf die OSM-Uferlinie
+// eingepasst. Deckt die nördlichen ~60 % des Sees ab (Stand: Fotos von 2026).
+const CHART_URL='karten/tiefenkarte.webp';
+const CHART_BOUNDS={south:57.235879,north:57.312158,west:14.311098,east:14.397061};
+let chartLayer=null, chartOpacity=0.85;
+function renderChartControls(){
+  const l=document.getElementById('seekLegend'); if(!l) return;
+  l.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+      <span style="font-family:var(--font-mono);font-size:11px;font-weight:800;color:var(--text-dim);flex:0 0 auto;">Seekarte</span>
+      <input type="range" id="chartOpa" min="0" max="100" value="${Math.round(chartOpacity*100)}" style="flex:1;">
+      <span id="chartOpaVal" style="font-family:var(--font-mono);font-size:11px;font-weight:800;flex:0 0 auto;">${Math.round(chartOpacity*100)}%</span>
+    </div>
+    <div class="legend" style="margin-top:8px;">
+      <span style="background:#8FD3EF;">0–2 m</span><span style="background:#2E86C1;">4–6 m</span>
+      <span style="background:#154360;">8–12 m</span><span style="background:#0B2A3F;">tiefer</span>
+    </div>
+    <p style="font-size:11.5px;color:var(--text-dim);margin:8px 0 0;font-weight:600;">
+      Punkte sind eure eigenen Messungen. Der dunkle Streifen bei Lindö ist eine Faltkante der Papierkarte.</p>`;
+  const s=document.getElementById('chartOpa');
+  if(s) s.addEventListener('input',()=>{
+    chartOpacity=Number(s.value)/100;
+    document.getElementById('chartOpaVal').textContent=s.value+'%';
+    if(chartLayer) chartLayer.setOpacity(chartOpacity); }); }
+
 // ---------- Position, Peilung, Wegpunkte ----------
 let geoWatchId=null, myPos=null, myMarker=null, myRing=null;
 let navTarget=null, navLine=null, wpLayer=[];
@@ -1796,7 +1855,7 @@ async function renderSeekarte(){
     await loadLeaflet();
     if(seekLayer==='heat') await loadLeafletHeat();
     if(seekMapObj){ try{ seekMapObj.remove(); }catch(e){} seekMapObj=null; }
-    myMarker=null; myRing=null; navLine=null; wpLayer=[];
+    myMarker=null; myRing=null; navLine=null; wpLayer=[]; chartLayer=null;
     box.innerHTML='<div id="seekLeafMap" style="height:340px;"></div>';
     seekMapObj=L.map('seekLeafMap',{scrollWheelZoom:false});
     cachedTileLayer().addTo(seekMapObj);
@@ -1810,10 +1869,19 @@ async function renderSeekarte(){
       if(pts.length){ L.heatLayer(pts,{radius:26,blur:22,maxZoom:17}).addTo(seekMapObj);
         bounds=L.latLngBounds(pts.map(p=>[p[0],p[1]])); }
     } else {
+      // Entzerrte Papier-Seekarte als Untergrund, eigene Messungen darüber
+      chartLayer=L.imageOverlay(CHART_URL,
+        L.latLngBounds([[CHART_BOUNDS.south,CHART_BOUNDS.west],[CHART_BOUNDS.north,CHART_BOUNDS.east]]),
+        {opacity:chartOpacity,interactive:false});
+      chartLayer.on('error',()=>{ const l=document.getElementById('seekLegend');
+        if(l) l.innerHTML='<div class="diag err">Seekarte nicht gefunden (karten/tiefenkarte.webp).</div>'; });
+      chartLayer.addTo(seekMapObj);
       const pts=depthPoints();
-      if(pts.length){ pts.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:5,stroke:false,fillColor:depthColor(p.depth),fillOpacity:0.85})
+      pts.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:4,stroke:true,color:'#fff',weight:1,
+        fillColor:depthColor(p.depth),fillOpacity:0.95})
         .addTo(seekMapObj).bindPopup(`${fmtD(p.depth)} m<br>${fmtDT(p.dt)}`));
-        bounds=L.latLngBounds(pts.map(p=>[p.lat,p.lon])); }
+      bounds=L.latLngBounds([[CHART_BOUNDS.south,CHART_BOUNDS.west],[CHART_BOUNDS.north,CHART_BOUNDS.east]]);
+      renderChartControls();
     }
     drawWaypoints(); drawMyPosition();
     if(bounds&&bounds.isValid&&bounds.isValid()) seekMapObj.fitBounds(bounds,{padding:[26,26]});
